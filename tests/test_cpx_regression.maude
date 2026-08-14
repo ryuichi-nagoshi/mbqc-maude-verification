@@ -1,0 +1,142 @@
+load ../src/workflow.maude
+
+fmod TEST-CPX-REGRESSION is
+  pr MBQC-WORKFLOW .
+
+  ------------------------------------------------------------
+  --- Named constants used only to make the test output readable
+  ------------------------------------------------------------
+
+  op plusI  : -> Cpx .
+  op minusI : -> Cpx .
+
+  eq plusI  = 1 i .
+  eq minusI = -1 i .
+
+endfm
+
+
+------------------------------------------------------------
+--- 1. Pure imaginary multiplication
+------------------------------------------------------------
+
+
+--- Expected: -1
+red plusI .* plusI .
+
+
+--- Expected: -1
+red minusI .* minusI .
+
+--- Expected: 1
+red plusI .* minusI .
+
+
+------------------------------------------------------------
+--- 2. Conjugation
+------------------------------------------------------------
+
+--- Expected: -1 i
+red (plusI)^* .
+
+--- Expected: 1 i
+red (minusI)^* .
+
+--- Expected: 1 .+ (-1 i)
+red (1 .+ plusI)^* .
+
+--- Expected: 1 .+ (1 i)
+red (1 .+ minusI)^* .
+
+
+------------------------------------------------------------
+--- 3. Addition and cancellation
+------------------------------------------------------------
+
+--- Expected: 0
+red plusI .+ minusI .
+
+--- Expected: 2
+red (1 .+ plusI) .+ (1 .+ minusI) .
+
+
+------------------------------------------------------------
+--- 4. Absolute square
+------------------------------------------------------------
+
+--- Expected: 1
+red | plusI |^2 .
+
+--- Expected: 1
+red | minusI |^2 .
+
+--- Expected: 2
+red | 1 .+ plusI |^2 .
+
+--- Expected: 2
+red | 1 .+ minusI |^2 .
+
+
+------------------------------------------------------------
+--- 5. Scalar multiplication
+------------------------------------------------------------
+
+--- Expected: (1 / 2) i, or an equivalent canonical term
+red (1 ./ 2) .* plusI .
+
+--- Expected: (-1 / 2) i, or an equivalent canonical term
+red (1 ./ 2) .* minusI .
+
+
+------------------------------------------------------------
+--- 6. Distribution regression
+------------------------------------------------------------
+
+--- These tests check that the current orientation of the distributive
+--- equation reaches a result rather than repeatedly alternating between
+--- factored and expanded forms.
+
+--- Expected: -1 .+ (1 i), modulo AC presentation
+red plusI .* (1 .+ plusI) .
+
+--- Expected: -1 .+ (-1 i), modulo AC presentation
+red minusI .* (1 .+ minusI) .
+
+--- Expected: 2
+red (1 .+ plusI) .* (1 .+ minusI) .
+
+
+------------------------------------------------------------
+--- 7. Angle phases required by the executable fragment
+------------------------------------------------------------
+
+--- Expected: 1 i
+red phase('pi/2) .
+
+--- Expected: -1 i
+red phase('-pi/2) .
+
+--- Expected: -1
+red phase('pi) .
+
+--- Expected: -1
+red phase('-pi) .
+
+
+------------------------------------------------------------
+--- 8. Conjugates of angle phases
+------------------------------------------------------------
+
+--- Expected: -1 i
+red (phase('pi/2))^* .
+
+--- Expected: 1 i
+red (phase('-pi/2))^* .
+
+--- Expected: -1
+red (phase('pi))^* .
+
+--- Expected: -1
+red (phase('-pi))^* .
+
+quit

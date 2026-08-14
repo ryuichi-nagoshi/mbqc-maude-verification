@@ -1,0 +1,39 @@
+load rq_case_library.maude
+
+fmod RQ-EVAL-COMMON is
+  pr RQ-CASE-LIBRARY .
+
+  var P : Pattern .
+  var Spec : Vect .
+
+  ------------------------------------------------------------
+  --- Verification methods used in RQ1 and RQ2
+  ------------------------------------------------------------
+
+  --- Naive:
+  --- execute only the fixed all-zero branch without gating.
+  op naiveAccept : Pattern Vect -> Bool .
+
+  eq naiveAccept(P, Spec)
+    =
+      checkF(
+        runSingle(P),
+        Spec
+      ) .
+
+
+  --- Full:
+  --- execute all physically surviving measurement branches.
+  ---
+  --- The production full executor prunes zero-probability
+  --- branches immediately after measurement.
+  op fullAccept : Pattern Vect -> Bool .
+
+  eq fullAccept(P, Spec)
+    =
+      checkF(
+        run(P),
+        Spec
+      ) .
+
+endfm

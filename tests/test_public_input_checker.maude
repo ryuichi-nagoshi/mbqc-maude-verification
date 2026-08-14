@@ -1,0 +1,150 @@
+load ../src/checker.maude
+
+fmod TEST-PUBLIC-INPUT-CHECKER is
+  pr MBQC-CHECKER .
+
+  ------------------------------------------------------------
+  --- Multi-qubit state used for input-validation tests
+  ------------------------------------------------------------
+
+  op |eprInputCheck> : -> Vect .
+
+  eq |eprInputCheck>
+    = (1 ./ sqrt(2))
+      . ((|0> (x) |0>) + (|1> (x) |1>)) .
+
+endfm
+
+
+------------------------------------------------------------
+--- A. Circuit validation
+------------------------------------------------------------
+
+--- Zero initial wires are invalid.
+--- Expected: false
+red checkCircuit(0, nil) .
+
+--- Empty circuit is valid when N > 0.
+--- Expected: true
+red checkCircuit(1, nil) .
+
+--- Valid J target.
+--- Expected: true
+red checkCircuit(
+  2,
+  J('0pi, 1)
+) .
+
+--- Out-of-range J target.
+--- Expected: false
+red checkCircuit(
+  2,
+  J('0pi, 2)
+) .
+
+--- Valid CZ between two distinct in-range wires.
+--- Expected: true
+red checkCircuit(
+  2,
+  CZG(0, 1)
+) .
+
+--- Self-CZ is invalid.
+--- Expected: false
+red checkCircuit(
+  2,
+  CZG(1, 1)
+) .
+
+--- Out-of-range CZ target.
+--- Expected: false
+red checkCircuit(
+  2,
+  CZG(0, 2)
+) .
+
+--- A valid multi-gate circuit is accepted.
+--- Expected: true
+red checkCircuit(
+  2,
+  J('0pi, 0)
+  CZG(0, 1)
+  J('pi/2, 1)
+) .
+
+--- An invalid gate anywhere in the list rejects the circuit.
+--- Expected: false
+red checkCircuit(
+  2,
+  J('0pi, 0)
+  CZG(0, 2)
+  J('pi/2, 1)
+) .
+
+
+------------------------------------------------------------
+--- B. Input-state validation
+------------------------------------------------------------
+
+--- N = 0 is invalid even for an empty input.
+--- Expected: false
+red checkInput(0, nil) .
+
+--- Empty input is accepted for N > 0.
+--- Unspecified wires are initialized later to |+>.
+--- Expected: true
+red checkInput(3, nil) .
+
+--- Partial single-qubit input is accepted.
+--- Expected: true
+red checkInput(
+  3,
+  < 1 @ |0> >
+) .
+
+--- Multiple disjoint single-qubit blocks are accepted.
+--- Expected: true
+red checkInput(
+  3,
+  < 0 @ |0> >
+  < 2 @ |1> >
+) .
+
+--- A multi-qubit state on one consecutive block is accepted.
+--- Expected: true
+red checkInput(
+  3,
+  < 1 2 @ |eprInputCheck> >
+) .
+
+--- Nonconsecutive wires in one block are rejected.
+--- Expected: false
+red checkInput(
+  3,
+  < 0 2 @ |eprInputCheck> >
+) .
+
+--- Overlapping input blocks are rejected.
+--- Expected: false
+red checkInput(
+  3,
+  < 0 1 @ |eprInputCheck> >
+  < 1 @ |0> >
+) .
+
+--- State size must match the number of wires in the block.
+--- Expected: false
+red checkInput(
+  3,
+  < 0 1 @ |0> >
+) .
+
+--- An out-of-range input wire is rejected.
+--- Expected: false
+red checkInput(
+  3,
+  < 3 @ |0> >
+) .
+
+
+quit

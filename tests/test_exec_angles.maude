@@ -1,0 +1,695 @@
+load ../src/workflow.maude
+
+fmod TEST-EXEC-ANGLES is
+  pr MBQC-WORKFLOW .
+
+  ------------------------------------------------------------
+  --- Helpers for branch counting
+  ------------------------------------------------------------
+
+  var M : Map{Nat,Bit} .
+  var N : Nat .
+  vars LN LN1 : List{Nat} .
+  var V : Vect .
+  var LOB : List{OutBranch} .
+  var P : Pattern .
+
+  op countOutBranches : List{OutBranch} -> Nat .
+
+  eq countOutBranches(nil) = 0 .
+
+  eq countOutBranches(< M, LN, V > LOB)
+    = s(countOutBranches(LOB)) .
+
+
+  ------------------------------------------------------------
+  --- Helpers for selecting the all-zero output branch
+  ------------------------------------------------------------
+
+  op allZeroOn : List{Nat} Map{Nat,Bit} -> Bool .
+
+  eq allZeroOn(nil, M) = true .
+
+  eq allZeroOn(N LN, M)
+    = (M[N] == zero) and allZeroOn(LN, M) .
+
+
+  op selectAllZero :
+    List{Nat} List{OutBranch} -> List{OutBranch} .
+
+  eq selectAllZero(LN, nil) = nil .
+
+  ceq selectAllZero(
+        LN,
+        < M, LN1, V > LOB
+      )
+    =
+      < M, LN1, V >
+      selectAllZero(LN, LOB)
+    if allZeroOn(LN, M) == true .
+
+  ceq selectAllZero(
+        LN,
+        < M, LN1, V > LOB
+      )
+    =
+      selectAllZero(LN, LOB)
+    if allZeroOn(LN, M) == false .
+
+
+  op runSingleMatchesZero : Pattern -> Bool .
+
+  eq runSingleMatchesZero(P)
+    =
+      (
+        runSingle(P)
+        ==
+        selectAllZero(measOrder(P), run(P))
+      ) .
+
+
+  ------------------------------------------------------------
+  --- Common input
+  ------------------------------------------------------------
+
+  op AngleTestIn : -> List{PairNV} .
+
+  eq AngleTestIn =
+    < 0 @ |0> >
+  .
+
+
+  ------------------------------------------------------------
+  --- J(pi/2) ; J(pi/2)
+  ------------------------------------------------------------
+
+  op PiOver2Gates : -> List{Gate} .
+
+  eq PiOver2Gates =
+    J('pi/2, 0)
+    J('pi/2, 0)
+  .
+
+  op PiOver2Compiled : -> Pattern .
+
+  eq PiOver2Compiled =
+    compile(1, PiOver2Gates, AngleTestIn)
+  .
+
+  op PiOver2P : -> Pattern .
+
+  eq PiOver2P =
+    wfPattern(1, PiOver2Gates, AngleTestIn)
+  .
+
+  op PiOver2Spec : -> Vect .
+
+  eq PiOver2Spec =
+      ((1 ./ 2) .+ ((1 ./ 2) i)) . |0>
+    + ((1 ./ 2) .+ ((-1 ./ 2) i)) . |1>
+  .
+
+
+  ------------------------------------------------------------
+  --- J(-pi/2) ; J(-pi/2)
+  ------------------------------------------------------------
+
+  op MinusPiOver2Gates : -> List{Gate} .
+
+  eq MinusPiOver2Gates =
+    J('-pi/2, 0)
+    J('-pi/2, 0)
+  .
+
+  op MinusPiOver2Compiled : -> Pattern .
+
+  eq MinusPiOver2Compiled =
+    compile(1, MinusPiOver2Gates, AngleTestIn)
+  .
+
+  op MinusPiOver2P : -> Pattern .
+
+  eq MinusPiOver2P =
+    wfPattern(1, MinusPiOver2Gates, AngleTestIn)
+  .
+
+  op MinusPiOver2Spec : -> Vect .
+
+  eq MinusPiOver2Spec =
+      ((1 ./ 2) .+ ((-1 ./ 2) i)) . |0>
+    + ((1 ./ 2) .+ ((1 ./ 2) i)) . |1>
+  .
+
+
+  ------------------------------------------------------------
+  --- J(pi) ; J(pi)
+  ------------------------------------------------------------
+
+  op PiGates : -> List{Gate} .
+
+  eq PiGates =
+    J('pi, 0)
+    J('pi, 0)
+  .
+
+  op PiCompiled : -> Pattern .
+
+  eq PiCompiled =
+    compile(1, PiGates, AngleTestIn)
+  .
+
+  op PiP : -> Pattern .
+
+  eq PiP =
+    wfPattern(1, PiGates, AngleTestIn)
+  .
+
+  op PiSpec : -> Vect .
+
+  eq PiSpec = |1> .
+
+
+  ------------------------------------------------------------
+  --- J(-pi) ; J(-pi)
+  ------------------------------------------------------------
+
+  op MinusPiGates : -> List{Gate} .
+
+  eq MinusPiGates =
+    J('-pi, 0)
+    J('-pi, 0)
+  .
+
+  op MinusPiCompiled : -> Pattern .
+
+  eq MinusPiCompiled =
+    compile(1, MinusPiGates, AngleTestIn)
+  .
+
+  op MinusPiP : -> Pattern .
+
+  eq MinusPiP =
+    wfPattern(1, MinusPiGates, AngleTestIn)
+  .
+
+  op MinusPiSpec : -> Vect .
+
+  eq MinusPiSpec = |1> .
+
+    ------------------------------------------------------------
+  *** Direct single-J tests with angle-sensitive input
+  ------------------------------------------------------------
+
+  op PlusAngleIn : -> List{PairNV} .
+
+  eq PlusAngleIn =
+    < 0 @ |+> >
+  .
+
+
+  *** J(pi/2) applied directly to |+>
+
+  op SinglePiOver2Gates : -> List{Gate} .
+
+  eq SinglePiOver2Gates =
+    J('pi/2, 0)
+  .
+
+  op SinglePiOver2P : -> Pattern .
+
+  eq SinglePiOver2P =
+    wfPattern(1, SinglePiOver2Gates, PlusAngleIn)
+  .
+
+  op SinglePiOver2Spec : -> Vect .
+
+  eq SinglePiOver2Spec =
+      ((1 ./ 2) .+ ((1 ./ 2) i)) . |0>
+    + ((1 ./ 2) .+ ((-1 ./ 2) i)) . |1>
+  .
+
+
+  *** J(-pi/2) applied directly to |+>
+
+  op SingleMinusPiOver2Gates : -> List{Gate} .
+
+  eq SingleMinusPiOver2Gates =
+    J('-pi/2, 0)
+  .
+
+  op SingleMinusPiOver2P : -> Pattern .
+
+  eq SingleMinusPiOver2P =
+    wfPattern(1, SingleMinusPiOver2Gates, PlusAngleIn)
+  .
+
+  op SingleMinusPiOver2Spec : -> Vect .
+
+  eq SingleMinusPiOver2Spec =
+      ((1 ./ 2) .+ ((-1 ./ 2) i)) . |0>
+    + ((1 ./ 2) .+ ((1 ./ 2) i)) . |1>
+  .
+
+
+  *** J(pi) applied directly to |+>
+
+  op SinglePiGates : -> List{Gate} .
+
+  eq SinglePiGates =
+    J('pi, 0)
+  .
+
+  op SinglePiP : -> Pattern .
+
+  eq SinglePiP =
+    wfPattern(1, SinglePiGates, PlusAngleIn)
+  .
+
+  op SinglePiSpec : -> Vect .
+
+  eq SinglePiSpec = |1> .
+
+
+  *** J(-pi) applied directly to |+>
+
+  op SingleMinusPiGates : -> List{Gate} .
+
+  eq SingleMinusPiGates =
+    J('-pi, 0)
+  .
+
+  op SingleMinusPiP : -> Pattern .
+
+  eq SingleMinusPiP =
+    wfPattern(1, SingleMinusPiGates, PlusAngleIn)
+  .
+
+  op SingleMinusPiSpec : -> Vect .
+
+  eq SingleMinusPiSpec = |1> .
+
+    ------------------------------------------------------------
+  *** Inverse-composition regression
+  ------------------------------------------------------------
+
+  op PiOver2InverseGates : -> List{Gate} .
+
+  eq PiOver2InverseGates =
+    J('pi/2, 0)
+    J('0pi, 0)
+    J('-pi/2, 0)
+    J('0pi, 0)
+  .
+
+  op PiOver2InverseP : -> Pattern .
+
+  eq PiOver2InverseP =
+    wfPattern(1, PiOver2InverseGates, PlusAngleIn)
+  .
+
+  op PiOver2InverseSpec : -> Vect .
+
+  eq PiOver2InverseSpec = |+> .
+
+
+endfm
+
+
+------------------------------------------------------------
+--- A. Primitive phase and projector inspection
+------------------------------------------------------------
+
+--- Expected: 1 i
+red phase('pi/2) .
+
+--- Expected: -1 i
+red phase('-pi/2) .
+
+--- Expected: -1
+red phase('pi) .
+
+--- Expected: -1
+red phase('-pi) .
+
+
+--- The following should reduce to concrete matrices containing only
+--- rational coefficients and ±i coefficients.
+
+red Proj+('pi/2) .
+red Proj-('pi/2) .
+
+red Proj+('-pi/2) .
+red Proj-('-pi/2) .
+
+red Proj+('pi) .
+red Proj-('pi) .
+
+red Proj+('-pi) .
+red Proj-('-pi) .
+
+
+------------------------------------------------------------
+--- B. pi/2: transformation and structural checks
+------------------------------------------------------------
+
+--- Expected: a concrete Pattern
+red PiOver2Compiled .
+
+--- Expected: true
+red checkWF(PiOver2Compiled) .
+
+--- Expected: a concrete standardized and signal-shifted Pattern
+red PiOver2P .
+
+--- Expected: true
+red checkWF(PiOver2P) .
+
+--- Expected: true
+red checkCMD(PiOver2P) .
+
+--- Expected: true
+red allConstZero(PiOver2P) .
+
+--- Expected: true
+red checkGflowRealized(PiOver2P) .
+
+
+------------------------------------------------------------
+--- C. pi/2: execution
+------------------------------------------------------------
+
+--- Two measurements produce four complete branches.
+--- Expected: 4
+red countOutBranches(run(PiOver2P)) .
+
+--- Representative execution keeps one branch.
+--- Expected: 1
+red countOutBranches(runSingle(PiOver2P)) .
+
+--- Inspect complete execution.
+red run(PiOver2P) .
+
+--- Inspect representative execution.
+red runSingle(PiOver2P) .
+
+--- Expected: true
+red runSingleMatchesZero(PiOver2P) .
+
+--- Expected: true
+red checkF(run(PiOver2P), PiOver2Spec) .
+
+--- Expected: true
+red checkF(runSingle(PiOver2P), PiOver2Spec) .
+
+--- Expected: pass
+red verify(
+  1,
+  PiOver2Gates,
+  AngleTestIn,
+  PiOver2Spec
+) .
+
+
+------------------------------------------------------------
+--- D. -pi/2: transformation and structural checks
+------------------------------------------------------------
+
+--- Expected: a concrete Pattern
+red MinusPiOver2Compiled .
+
+--- Expected: true
+red checkWF(MinusPiOver2Compiled) .
+
+--- Expected: a concrete transformed Pattern
+red MinusPiOver2P .
+
+--- Expected: true
+red checkWF(MinusPiOver2P) .
+
+--- Expected: true
+red checkCMD(MinusPiOver2P) .
+
+--- Expected: true
+red allConstZero(MinusPiOver2P) .
+
+--- Expected: true
+red checkGflowRealized(MinusPiOver2P) .
+
+
+------------------------------------------------------------
+--- E. -pi/2: execution
+------------------------------------------------------------
+
+--- Expected: 4
+red countOutBranches(run(MinusPiOver2P)) .
+
+--- Expected: 1
+red countOutBranches(runSingle(MinusPiOver2P)) .
+
+red run(MinusPiOver2P) .
+
+red runSingle(MinusPiOver2P) .
+
+--- Expected: true
+red runSingleMatchesZero(MinusPiOver2P) .
+
+--- Expected: true
+red checkF(run(MinusPiOver2P), MinusPiOver2Spec) .
+
+--- Expected: true
+red checkF(runSingle(MinusPiOver2P), MinusPiOver2Spec) .
+
+--- Expected: pass
+red verify(
+  1,
+  MinusPiOver2Gates,
+  AngleTestIn,
+  MinusPiOver2Spec
+) .
+
+
+------------------------------------------------------------
+--- F. pi: transformation and structural checks
+------------------------------------------------------------
+
+--- Expected: a concrete Pattern
+red PiCompiled .
+
+--- Expected: true
+red checkWF(PiCompiled) .
+
+--- Expected: a concrete transformed Pattern
+red PiP .
+
+--- Expected: true
+red checkWF(PiP) .
+
+--- Expected: true
+red checkCMD(PiP) .
+
+--- Expected: true
+red allConstZero(PiP) .
+
+--- Expected: true
+red checkGflowRealized(PiP) .
+
+
+------------------------------------------------------------
+--- G. pi: execution
+------------------------------------------------------------
+
+--- Expected: 4
+red countOutBranches(run(PiP)) .
+
+--- Expected: 1
+red countOutBranches(runSingle(PiP)) .
+
+red run(PiP) .
+
+red runSingle(PiP) .
+
+--- Expected: true
+red runSingleMatchesZero(PiP) .
+
+--- Expected: true
+red checkF(run(PiP), PiSpec) .
+
+--- Expected: true
+red checkF(runSingle(PiP), PiSpec) .
+
+--- Expected: pass
+red verify(
+  1,
+  PiGates,
+  AngleTestIn,
+  PiSpec
+) .
+
+
+------------------------------------------------------------
+--- H. -pi: transformation and structural checks
+------------------------------------------------------------
+
+--- Expected: a concrete Pattern
+red MinusPiCompiled .
+
+--- Expected: true
+red checkWF(MinusPiCompiled) .
+
+--- Expected: a concrete transformed Pattern
+red MinusPiP .
+
+--- Expected: true
+red checkWF(MinusPiP) .
+
+--- Expected: true
+red checkCMD(MinusPiP) .
+
+--- Expected: true
+red allConstZero(MinusPiP) .
+
+--- Expected: true
+red checkGflowRealized(MinusPiP) .
+
+
+------------------------------------------------------------
+--- I. -pi: execution
+------------------------------------------------------------
+
+--- Expected: 4
+red countOutBranches(run(MinusPiP)) .
+
+--- Expected: 1
+red countOutBranches(runSingle(MinusPiP)) .
+
+red run(MinusPiP) .
+
+red runSingle(MinusPiP) .
+
+--- Expected: true
+red runSingleMatchesZero(MinusPiP) .
+
+--- Expected: true
+red checkF(run(MinusPiP), MinusPiSpec) .
+
+--- Expected: true
+red checkF(runSingle(MinusPiP), MinusPiSpec) .
+
+--- Expected: pass
+red verify(
+  1,
+  MinusPiGates,
+  AngleTestIn,
+  MinusPiSpec
+) .
+
+------------------------------------------------------------
+*** Direct single-J execution tests
+------------------------------------------------------------
+
+*** One measurement gives two full branches.
+*** Expected: 2
+red countOutBranches(run(SinglePiOver2P)) .
+
+*** Expected: true
+red runSingleMatchesZero(SinglePiOver2P) .
+
+*** Expected: true
+red checkF(run(SinglePiOver2P), SinglePiOver2Spec) .
+
+*** Expected: true
+red checkF(runSingle(SinglePiOver2P), SinglePiOver2Spec) .
+
+*** Expected: pass
+red verify(
+  1,
+  SinglePiOver2Gates,
+  PlusAngleIn,
+  SinglePiOver2Spec
+) .
+
+
+*** Expected: 2
+red countOutBranches(run(SingleMinusPiOver2P)) .
+
+*** Expected: true
+red runSingleMatchesZero(SingleMinusPiOver2P) .
+
+*** Expected: true
+red checkF(run(SingleMinusPiOver2P), SingleMinusPiOver2Spec) .
+
+*** Expected: true
+red checkF(runSingle(SingleMinusPiOver2P), SingleMinusPiOver2Spec) .
+
+*** Expected: pass
+red verify(
+  1,
+  SingleMinusPiOver2Gates,
+  PlusAngleIn,
+  SingleMinusPiOver2Spec
+) .
+
+
+*** Expected: 2
+red countOutBranches(run(SinglePiP)) .
+
+*** Expected: true
+red runSingleMatchesZero(SinglePiP) .
+
+*** Expected: true
+red checkF(run(SinglePiP), SinglePiSpec) .
+
+*** Expected: true
+red checkF(runSingle(SinglePiP), SinglePiSpec) .
+
+*** Expected: pass
+red verify(
+  1,
+  SinglePiGates,
+  PlusAngleIn,
+  SinglePiSpec
+) .
+
+
+*** Expected: 2
+red countOutBranches(run(SingleMinusPiP)) .
+
+*** Expected: true
+red runSingleMatchesZero(SingleMinusPiP) .
+
+*** Expected: true
+red checkF(run(SingleMinusPiP), SingleMinusPiSpec) .
+
+*** Expected: true
+red checkF(runSingle(SingleMinusPiP), SingleMinusPiSpec) .
+
+*** Expected: pass
+red verify(
+  1,
+  SingleMinusPiGates,
+  PlusAngleIn,
+  SingleMinusPiSpec
+) .
+
+*** Four measurements give sixteen full branches.
+*** Expected: 16
+red countOutBranches(run(PiOver2InverseP)) .
+
+*** Expected: true
+red runSingleMatchesZero(PiOver2InverseP) .
+
+*** Expected: true
+red checkF(run(PiOver2InverseP), PiOver2InverseSpec) .
+
+*** Expected: true
+red checkF(runSingle(PiOver2InverseP), PiOver2InverseSpec) .
+
+*** Expected: pass
+red verify(
+  1,
+  PiOver2InverseGates,
+  PlusAngleIn,
+  PiOver2InverseSpec
+) .
+
+quit

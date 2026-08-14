@@ -1,0 +1,87 @@
+RQ3 experiment manifest
+=======================
+created_at=2026-08-08T18:42:55+09:00
+working_directory=/home/takagi/Exp_MBQC
+repetitions=5
+timeout_seconds=3600
+cooldown_seconds=5
+workloads=tele cnot bitflip3 ghz3 ghz4 ghz5 ghz6
+methods=full proposed
+force=0
+
+[git]
+c66869a2e035c3617bb3f8e8cf485611f3dac814
+?? results/rq3_final_postfreeze/
+
+[sha256]
+be5167f5031f72502cc7d507abf73d4a85d613c6828dd3e7aa265c8ee4958fe9  run_rq3_once.sh
+d9c264d4316024c286c250a30482c53322e48b1f53a2594d2b77e82a266dcd6a  run_rq3_experiment.sh
+04a2ff420383b21f4d30b38820808ada58a6d1c6f623b6cedb401e2b15fce67e  evaluation/tools/parse_rq3_run.py
+99c02c49bf5dddc4ef70bfcbe439d1543f545f1a1a16d2e811e8ddfea7d255c5  evaluation/tools/aggregate_rq3_results.py
+b879a837b32118f9845a1078c72bf0021a3df5d2f124ff4bf94d131d12d8eed5  evaluation/common/rq3_core.maude
+
+[uname]
+Linux takagilab 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+
+[lscpu]
+Architecture:                         x86_64
+CPU op-mode(s):                       32-bit, 64-bit
+Address sizes:                        48 bits physical, 48 bits virtual
+Byte Order:                           Little Endian
+CPU(s):                               16
+On-line CPU(s) list:                  0-15
+Vendor ID:                            AuthenticAMD
+Model name:                           AMD Ryzen 7 8840HS w/ Radeon 780M Graphics
+CPU family:                           25
+Model:                                117
+Thread(s) per core:                   2
+Core(s) per socket:                   8
+Socket(s):                            1
+Stepping:                             2
+BogoMIPS:                             6587.69
+Flags:                                fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl tsc_reliable nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy svm cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext perfctr_core ssbd ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm
+Virtualization:                       AMD-V
+Hypervisor vendor:                    Microsoft
+Virtualization type:                  full
+L1d cache:                            256 KiB (8 instances)
+L1i cache:                            256 KiB (8 instances)
+L2 cache:                             8 MiB (8 instances)
+L3 cache:                             16 MiB (1 instance)
+NUMA node(s):                         1
+NUMA node0 CPU(s):                    0-15
+Vulnerability Gather data sampling:   Not affected
+Vulnerability Itlb multihit:          Not affected
+Vulnerability L1tf:                   Not affected
+Vulnerability Mds:                    Not affected
+Vulnerability Meltdown:               Not affected
+Vulnerability Mmio stale data:        Not affected
+Vulnerability Reg file data sampling: Not affected
+Vulnerability Retbleed:               Not affected
+Vulnerability Spec rstack overflow:   Vulnerable: Safe RET, no microcode
+Vulnerability Spec store bypass:      Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:             Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:             Mitigation; Retpolines; IBPB conditional; IBRS_FW; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected
+Vulnerability Srbds:                  Not affected
+Vulnerability Tsx async abort:        Not affected
+
+[memory]
+               total        used        free      shared  buff/cache   available
+Mem:           7.4Gi       959Mi       6.4Gi       4.9Mi       220Mi       6.5Gi
+Swap:          2.0Gi          0B       2.0Gi
+
+[maude]
+		     \||||||||||||||||||/
+		   --- Welcome to Maude ---
+		     /||||||||||||||||||\
+	     Maude 3.5 built: Sep 25 2024 12:00:00
+	     Copyright 1997-2024 SRI International
+		   Sat Aug  8 18:42:56 2026
+Bye.
+
+[time]
+time (GNU Time) UNKNOWN
+Copyright (C) 2018 Free Software Foundation, Inc.
+
+[timeout]
+timeout (GNU coreutils) 9.4
+Copyright (C) 2023 Free Software Foundation, Inc.

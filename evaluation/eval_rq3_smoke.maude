@@ -1,0 +1,79 @@
+load common/rq3_core.maude
+
+set clear memo off .
+set show stats on .
+set show timing on .
+
+------------------------------------------------------------
+--- A. Generic-family equivalence with the existing GHZ5 case
+------------------------------------------------------------
+
+--- Expected: true
+red in RQ3-CORE : ghzGates(5) == GHZ5Gates .
+
+--- Expected: true
+red in RQ3-CORE : GHZP(5) == GHZ5P .
+
+--- Expected: true
+red in RQ3-CORE : GHZSpec(5) == GHZ5Spec .
+
+------------------------------------------------------------
+--- B. Structural metadata
+------------------------------------------------------------
+
+--- Expected: 5, 3, 2, 4
+red in RQ3-CORE : vertexCount(GHZP(3)) .
+red in RQ3-CORE : outputCount(GHZP(3)) .
+red in RQ3-CORE : measurementCount(GHZP(3)) .
+red in RQ3-CORE : expectedBranches(GHZP(3)) .
+
+--- Expected: 7, 4, 3, 8
+red in RQ3-CORE : vertexCount(GHZP(4)) .
+red in RQ3-CORE : outputCount(GHZP(4)) .
+red in RQ3-CORE : measurementCount(GHZP(4)) .
+red in RQ3-CORE : expectedBranches(GHZP(4)) .
+
+--- Expected: 9, 5, 4, 16
+red in RQ3-CORE : vertexCount(GHZP(5)) .
+red in RQ3-CORE : outputCount(GHZP(5)) .
+red in RQ3-CORE : measurementCount(GHZP(5)) .
+red in RQ3-CORE : expectedBranches(GHZP(5)) .
+
+--- Expected: 11, 6, 5, 32
+red in RQ3-CORE : vertexCount(GHZP(6)) .
+red in RQ3-CORE : outputCount(GHZP(6)) .
+red in RQ3-CORE : measurementCount(GHZP(6)) .
+red in RQ3-CORE : expectedBranches(GHZP(6)) .
+
+--- Expected: 13, 7, 6, 64
+red in RQ3-CORE : vertexCount(GHZP(7)) .
+red in RQ3-CORE : outputCount(GHZP(7)) .
+red in RQ3-CORE : measurementCount(GHZP(7)) .
+red in RQ3-CORE : expectedBranches(GHZP(7)) .
+
+------------------------------------------------------------
+--- C. Static preconditions
+------------------------------------------------------------
+
+--- Expected: true for all
+red in RQ3-CORE : precheckP(GHZP(3)) .
+red in RQ3-CORE : precheckP(GHZP(4)) .
+red in RQ3-CORE : precheckP(GHZP(5)) .
+red in RQ3-CORE : precheckP(GHZP(6)) .
+red in RQ3-CORE : precheckP(GHZP(7)) .
+
+------------------------------------------------------------
+--- D. Small semantic smoke tests
+------------------------------------------------------------
+
+--- Expected: true, true, pass
+red in RQ3-CORE : fullCost(GHZP(3), GHZSpec(3)) .
+red in RQ3-CORE : singleCost(GHZP(3), GHZSpec(3)) .
+red in RQ3-CORE : proposedCost(GHZP(3), GHZSpec(3)) .
+
+--- Expected: true, true, pass
+red in RQ3-CORE : fullCost(GHZP(4), GHZSpec(4)) .
+red in RQ3-CORE : singleCost(GHZP(4), GHZSpec(4)) .
+red in RQ3-CORE : proposedCost(GHZP(4), GHZSpec(4)) .
+
+quit

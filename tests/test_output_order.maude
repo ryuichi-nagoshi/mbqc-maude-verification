@@ -1,0 +1,277 @@
+load ../src/workflow.maude
+
+fmod TEST-OUTPUT-ORDER is
+    pr MBQC-WORKFLOW .
+
+    ops a b : -> Cpx .
+
+    var V : Vect .
+    var S : Map{Nat,Bit} .
+    vars LN LN1 LN2 : List{Nat} .
+    var LOB : List{OutBranch} .
+    var LNV : List{PairNV} .
+    var LC : List{Command} .
+
+    --- Simplifications needed by the execution tests
+    eq sqrt(4) = 2 .
+    eq sqrt(16) = 4 .
+    eq sqrt(64) = 8 .
+    eq sqrt(256) = 16 .
+    eq sqrt(4096) = 64 .
+
+    ------------------------------------------------------------
+    --- Accessors used only by this test module
+    ------------------------------------------------------------
+
+    op outputsOf : Pattern -> List{Nat} .
+    eq outputsOf(< LN1, LNV, LN2, LC >) = LN2 .
+
+    op outIDs : OutBranch -> List{Nat} .
+    op outState : OutBranch -> Vect .
+
+    eq outIDs(< S, LN, V >) = LN .
+    eq outState(< S, LN, V >) = V .
+
+    op allOutputIDs : List{OutBranch} List{Nat} -> Bool .
+
+    eq allOutputIDs(nil, LN) = true .
+
+    eq allOutputIDs(< S, LN1, V > LOB, LN2)
+      = (LN1 == LN2) and allOutputIDs(LOB, LN2) .
+
+    ------------------------------------------------------------
+    --- Direct traceOut test data
+    ------------------------------------------------------------
+
+    op S03 : -> Map{Nat,Bit} .
+    eq S03 = insert(0, zero, insert(3, zero, empty)) .
+
+    ------------------------------------------------------------
+    --- Compiler-generated 2-wire example
+    ---
+    --- Execution order:
+    ---   J(pi, 1), J(0, 0)
+    ---
+    --- Physical outputs: 2, 3
+    --- Logical-wire order O: 3, 2
+    ------------------------------------------------------------
+
+    op Reorder2P : -> Pattern .
+    op Reorder2Spec : -> Vect .
+
+    eq Reorder2P =
+      wfPattern(
+        2,
+        J('pi, 1)
+        J('0pi, 0),
+        < 0 @ |+> >
+        < 1 @ |+> >
+      ) .
+
+    eq Reorder2Spec = |0> (x) |1> .
+
+    ------------------------------------------------------------
+    --- Compiler-generated 3-wire example
+    ---
+    --- Physical creation order:
+    ---   wire 2 -> qubit 3
+    ---   wire 0 -> qubit 4
+    ---   wire 1 -> qubit 5
+    ---
+    --- Logical-wire order O: 4, 5, 3
+    ------------------------------------------------------------
+
+    op Reorder3P : -> Pattern .
+    op Reorder3Spec : -> Vect .
+
+    eq Reorder3P =
+      wfPattern(
+        3,
+        J('0pi, 2)
+        J('0pi, 0)
+        J('pi, 1),
+        < 0 @ |+> >
+        < 1 @ |+> >
+        < 2 @ |0> >
+      ) .
+
+    eq Reorder3Spec =
+      |0> (x) |1> (x) |+> .
+
+endfm
+
+red checkF(nil, |0>) . ---false
+
+red checkF(
+  < empty, nil, |0> > nil,
+  |0>
+) . --- true
+
+red checkF(
+  < empty, nil, |1> > nil,
+  |0>
+) . ---false
+
+red checkF(
+  < empty, nil, |0> >
+  < empty, nil, |1> > nil,
+  |0>
+) . ---false
+
+--- Identity permutation
+red reorderOutput(
+  0 1 2,
+  0 1 2,
+  |0> (x) |1> (x) |0>
+)
+==
+|0> (x) |1> (x) |0> .
+
+--- 2-qubit reversal
+red reorderOutput(
+  0 1,
+  1 0,
+  |0> (x) |1>
+)
+==
+|1> (x) |0> .
+
+--- 3-qubit cyclic permutation with a superposition
+red reorderOutput(
+  0 1 2,
+  1 2 0,
+  |0> (x) |1> (x) |+>
+)
+==
+|1> (x) |+> (x) |0> .
+
+--- 3-qubit symbolic superposition
+red reorderOutput(
+  0 1 2,
+  2 0 1,
+  a . (|0> (x) |1> (x) |0>)
+  + b . (|1> (x) |0> (x) |1>)
+)
+==
+a . (|0> (x) |0> (x) |1>)
++ b . (|1> (x) |1> (x) |0>) .
+
+--- Zero-output edge case
+red reorderOutput(nil, nil, eV) == eV .
+
+--- Missing output ID
+red reorderOutput(
+  0 1 2,
+  0 1,
+  |0> (x) |1> (x) |0>
+)
+== errV .
+
+--- Extra output ID
+red reorderOutput(
+  0 1,
+  0 1 2,
+  |0> (x) |1>
+)
+== errV .
+
+--- Duplicate output ID
+red reorderOutput(
+  0 1 2,
+  0 0 2,
+  |0> (x) |1> (x) |0>
+)
+== errV .
+
+--- State-size mismatch
+red reorderOutput(
+  0 1 2,
+  0 1 2,
+  |0> (x) |1>
+)
+== errV .
+
+red outIDs(
+  traceOut(
+    5,
+    4 1 2,
+    < S03,
+      |0> (x) |0> (x) |1> (x) |0> (x) |1>
+    >
+  )
+)
+==
+4 1 2 .
+
+red outState(
+  traceOut(
+    5,
+    4 1 2,
+    < S03,
+      |0> (x) |0> (x) |1> (x) |0> (x) |1>
+    >
+  )
+)
+==
+|1> (x) |0> (x) |1> .
+
+--- Invalid O
+red outState(
+  traceOut(
+    5,
+    4 1 1,
+    < S03,
+      |0> (x) |0> (x) |1> (x) |0> (x) |1>
+    >
+  )
+)
+==
+errV .
+
+red outputsOf(Reorder2P) == 3 2 .
+
+red allOutputIDs(run(Reorder2P), 3 2) .
+red allOutputIDs(runSingle(Reorder2P), 3 2) .
+
+red checkF(run(Reorder2P), Reorder2Spec) .
+red checkF(runSingle(Reorder2P), Reorder2Spec) .
+
+red size(run(Reorder2P)) .
+red size(runSingle(Reorder2P)) .
+
+red verify(
+  2,
+  J('pi, 1)
+  J('0pi, 0),
+  < 0 @ |+> >
+  < 1 @ |+> >,
+  |0> (x) |1>
+) .
+
+red outputsOf(Reorder3P) == 4 5 3 .
+
+red checkCMD(Reorder3P) .
+red allConstZero(Reorder3P) .
+red checkGflowRealized(Reorder3P) .
+
+red allOutputIDs(run(Reorder3P), 4 5 3) .
+red allOutputIDs(runSingle(Reorder3P), 4 5 3) .
+
+red checkF(run(Reorder3P), Reorder3Spec) .
+red checkF(runSingle(Reorder3P), Reorder3Spec) .
+
+red size(run(Reorder3P)) .
+red size(runSingle(Reorder3P)) .
+
+red verify(
+  3,
+  J('0pi, 2)
+  J('0pi, 0)
+  J('pi, 1),
+  < 0 @ |+> >
+  < 1 @ |+> >
+  < 2 @ |0> >,
+  |0> (x) |1> (x) |+>
+) .
+
+q

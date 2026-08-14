@@ -1,0 +1,520 @@
+load rq_eval_common.maude
+
+fmod TEST-RQ2-INTEGRATED is
+  pr RQ-EVAL-COMMON .
+
+
+  --- ============================================================
+  --- A. Workflow rejection stages
+  --- ============================================================
+
+  sort RQ2Stage RQ2StageResult .
+
+
+  ops
+    stagePass
+    stageWF
+    stageCMD
+    stageConst
+    stageGflow
+    stageFidelity
+
+    --- Included only to make stageOf total over Verdict.
+    --- They are not part of the RQ2 post-transformation study.
+    stageCircuit
+    stageInput
+    : -> RQ2Stage [ctor] .
+
+
+  op stageR :
+    Verdict RQ2Stage
+    -> RQ2StageResult [ctor] .
+
+
+  var Vrd : Verdict .
+  var P : Pattern .
+  var Spec : Vect .
+  var N : Nat .
+
+
+  ------------------------------------------------------------
+  --- Map workflow verdict to rejection stage
+  ------------------------------------------------------------
+
+  op stageOf :
+    Verdict -> RQ2Stage .
+
+  eq stageOf(pass)
+    = stagePass .
+
+  eq stageOf(fail)
+    = stageFidelity .
+
+  eq stageOf(error-wf)
+    = stageWF .
+
+  eq stageOf(error-checkCMD)
+    = stageCMD .
+
+  eq stageOf(error-nonzero-const)
+    = stageConst .
+
+  eq stageOf(error-gflow)
+    = stageGflow .
+
+  eq stageOf(error-circuit)
+    = stageCircuit .
+
+  eq stageOf(error-input)
+    = stageInput .
+
+
+  op stageFrom :
+    Verdict -> RQ2StageResult .
+
+  eq stageFrom(Vrd)
+    =
+      stageR(
+        Vrd,
+        stageOf(Vrd)
+      ) .
+
+
+  op rq2StageReport :
+    Pattern Vect -> RQ2StageResult .
+
+  eq rq2StageReport(P, Spec)
+    =
+      stageFrom(
+        verifyP(P, Spec)
+      ) .
+
+
+  --- ============================================================
+  --- B. Command-form diagnostics
+  --- ============================================================
+
+  sort CMDStageDiag .
+
+  --- Fields:
+  ---
+  ---   checkWF
+  ---   allTzero
+  ---   checkPhase
+  ---   checkCMD
+  op cmdD :
+    Bool Bool Bool Bool
+    -> CMDStageDiag [ctor] .
+
+
+  op cmdDiag :
+    Pattern -> CMDStageDiag .
+
+  eq cmdDiag(P)
+    =
+      cmdD(
+        checkWF(P),
+        allTzero(P),
+        checkPhase(P),
+        checkCMD(P)
+      ) .
+
+
+  --- ============================================================
+  --- C. Constant-stage diagnostics
+  --- ============================================================
+
+  sort ConstStageDiag .
+
+  --- Fields:
+  ---
+  ---   checkWF
+  ---   checkCMD
+  ---   allConstZero
+  op constD :
+    Bool Bool Bool
+    -> ConstStageDiag [ctor] .
+
+
+  op constDiag :
+    Pattern -> ConstStageDiag .
+
+  eq constDiag(P)
+    =
+      constD(
+        checkWF(P),
+        checkCMD(P),
+        allConstZero(P)
+      ) .
+
+
+  --- ============================================================
+  --- D. Production gflow-core diagnostics
+  ---
+  --- Only the three predicates used by production acceptance
+  --- are included:
+  ---
+  ---   gNonInput
+  ---   selfOdd
+  ---   zConsistent
+  ---
+  --- gNonEmpty, gFuture, and oddFuture are intentionally absent.
+  --- ============================================================
+
+  sort CoreGflowDiag .
+
+  --- Fields:
+  ---
+  ---   checkWF
+  ---   gOf
+  ---   actualZOf
+  ---   expectedZOf
+  ---   gNonInput
+  ---   selfOdd
+  ---   zConsistent
+  ---   checkGVertex
+  op coreD :
+    Bool
+    List{Nat}
+    List{Nat}
+    List{Nat}
+    Bool Bool Bool Bool
+    -> CoreGflowDiag [ctor] .
+
+
+  op coreDiag :
+    Nat Pattern -> CoreGflowDiag .
+
+  eq coreDiag(N, P)
+    =
+      coreD(
+        checkWF(P),
+        gOf(N, P),
+        actualZOf(N, P),
+        expectedZOf(N, P),
+        gNonInput?(N, P),
+        selfOdd?(N, P),
+        zConsistent?(N, P),
+        checkGVertex(N, P)
+      ) .
+
+
+  --- ============================================================
+  --- E. Final-fidelity diagnostics
+  --- ============================================================
+
+  sort FidelityStageDiag .
+
+  --- Fields:
+  ---
+  ---   checkWF
+  ---   checkCMD
+  ---   allConstZero
+  ---   checkGflowRealized
+  ---   Naive
+  ---   Full
+  ---   Proposed verdict
+  op fidelityD :
+    Bool Bool Bool Bool
+    Bool Bool Verdict
+    -> FidelityStageDiag [ctor] .
+
+
+  op fidelityDiag :
+    Pattern Vect -> FidelityStageDiag .
+
+  eq fidelityDiag(P, Spec)
+    =
+      fidelityD(
+        checkWF(P),
+        checkCMD(P),
+        allConstZero(P),
+        checkGflowRealized(P),
+        naiveAccept(P, Spec),
+        fullAccept(P, Spec),
+        verifyP(P, Spec)
+      ) .
+
+endfm
+
+
+--- ============================================================
+--- 0. Positive workflow reference
+--- ============================================================
+
+red rq2StageReport(
+  Tele0BaseP,
+  Tele0Spec
+) .
+
+
+--- ============================================================
+--- 1. checkWF stage
+---
+--- Six mutation classes.
+---
+--- Expected:
+---   stageR(error-wf, stageWF)
+--- ============================================================
+
+red rq2StageReport(
+  WF1DuplicateVertexP,
+  Tele0Spec
+) .
+
+red rq2StageReport(
+  WF2InvalidOutputP,
+  Tele0Spec
+) .
+
+red rq2StageReport(
+  WF3MissingMeasurementP,
+  Tele0Spec
+) .
+
+red rq2StageReport(
+  WF4UnavailableDependencyP,
+  Tele0Spec
+) .
+
+red rq2StageReport(
+  WF5PastCorrectionP,
+  Tele0Spec
+) .
+
+red rq2StageReport(
+  WF6DuplicateInputP,
+  Tele0Spec
+) .
+
+
+--- ============================================================
+--- 2. checkCMD stage
+---
+--- Two mutation classes.
+---
+--- Expected:
+---   stageR(error-checkCMD, stageCMD)
+--- ============================================================
+
+red rq2StageReport(
+  CMD1ResidualTP,
+  Tele0Spec
+) .
+
+red rq2StageReport(
+  CMD2OrderP,
+  Tele0Spec
+) .
+
+
+--- Command-form isolation.
+---
+--- CMD1:
+---   checkWF   = true
+---   allTzero  = false
+---   checkPhase = true
+---   checkCMD  = false
+---
+--- CMD2:
+---   checkWF   = true
+---   allTzero  = true
+---   checkPhase = false
+---   checkCMD  = false
+
+red cmdDiag(
+  CMD1ResidualTP
+) .
+
+red cmdDiag(
+  CMD2OrderP
+) .
+
+
+--- ============================================================
+--- 3. allConstZero stage
+---
+--- Main RQ2 fault:
+--- observable Z-constant.
+---
+--- Expected:
+---   stageR(error-nonzero-const, stageConst)
+--- ============================================================
+
+red rq2StageReport(
+  ZConstMutP,
+  ZConstSpec
+) .
+
+red constDiag(
+  ZConstMutP
+) .
+
+
+--- ============================================================
+--- 4. checkGflowRealized stage
+---
+--- Nine structural mutation cases:
+---
+---   XDel
+---   XTgt
+---   XDep
+---   ZDel
+---   ZDep
+---   MSDel
+---   EDel
+---   ETgt
+---   EAddNew
+---
+--- Expected:
+---   stageR(error-gflow, stageGflow)
+--- ============================================================
+
+red rq2StageReport(
+  XDelP,
+  CNOTXSpec
+) .
+
+red rq2StageReport(
+  XTgtP,
+  CNOTXSpec
+) .
+
+red rq2StageReport(
+  XDepP,
+  CNOTXSpec
+) .
+
+red rq2StageReport(
+  ZDelP,
+  CNOTZSpec
+) .
+
+red rq2StageReport(
+  ZDepP,
+  CNOTZSpec
+) .
+
+red rq2StageReport(
+  MSDelP,
+  CNOTXSpec
+) .
+
+red rq2StageReport(
+  EDelP,
+  Tele0Spec
+) .
+
+red rq2StageReport(
+  ETgtP,
+  Tele0Spec
+) .
+
+red rq2StageReport(
+  EAddNewP,
+  TelePlusSpec
+) .
+
+
+--- ============================================================
+--- 4-A. Canonical isolation of the three production
+---      realized-gflow predicates
+---
+--- These are the primary predicate-localization examples
+--- intended for the paper.
+--- ============================================================
+
+
+--- XDel:
+---   gNonInput  = true
+---   selfOdd    = false
+---   zConsistent = true
+---
+--- Isolates selfOdd.
+
+red coreDiag(
+  2,
+  XDelP
+) .
+
+
+--- XTgt:
+---   gNonInput  = false
+---   selfOdd    = true
+---   zConsistent = true
+---
+--- Isolates gNonInput.
+
+red coreDiag(
+  2,
+  XTgtP
+) .
+
+
+--- XDep:
+---   gNonInput  = true
+---   selfOdd    = true
+---   zConsistent = false
+---
+--- Isolates zConsistent.
+
+red coreDiag(
+  1,
+  XDepP
+) .
+
+
+--- ============================================================
+--- 5. Final fidelity stage
+---
+--- Measurement-angle mutation.
+---
+--- All structural guards must pass, after which both Naive
+--- and Full reject the incorrect specification.
+---
+--- Expected:
+---
+---   stageR(fail, stageFidelity)
+--- ============================================================
+
+red rq2StageReport(
+  AngleMutP,
+  AngleSpec
+) .
+
+
+--- Compare accepted baseline and semantic mutant.
+
+red fidelityDiag(
+  AngleBaseP,
+  AngleSpec
+) .
+
+red fidelityDiag(
+  AngleMutP,
+  AngleSpec
+) .
+
+
+--- ============================================================
+--- 6. Boundary case: conservative constant rejection
+---
+--- This case is NOT counted among the 19 RQ2 fault cases.
+---
+--- The concrete mutation is semantically harmless at angle zero,
+--- but it lies outside the supported all-zero-constant fragment.
+---
+--- It is included here only to show that it is rejected at the
+--- same workflow stage as the observable Z-constant fault.
+--- ============================================================
+
+red rq2StageReport(
+  MConstP,
+  Tele0Spec
+) .
+
+red constDiag(
+  MConstP
+) .
+
+quit

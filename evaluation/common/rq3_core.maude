@@ -1,0 +1,180 @@
+load case_core.maude
+
+fmod RQ3-CORE is
+  pr TEST-CORE-VERIFY .
+
+  vars K PREV CURR : Nat .
+  vars VS OUTS : List{Nat} .
+  var In : List{PairNV} .
+  var LC : List{Command} .
+  var P : Pattern .
+  var Spec : Vect .
+  var Br : Branch .
+  var B : Bool .
+
+  ------------------------------------------------------------
+  --- Small forcing wrappers
+  ---
+  --- The strategy attribute forces the argument to canonical form
+  --- before the wrapper reduces to done.  This avoids printing a
+  --- potentially huge state term in diagnostic measurements.
+  ------------------------------------------------------------
+
+  sort Probe .
+  op done : -> Probe [ctor] .
+
+  op forcePattern : Pattern -> Probe [strat (1 0)] .
+  op forceVect    : Vect    -> Probe [strat (1 0)] .
+  op forceBranch  : Branch  -> Probe [strat (1 0)] .
+
+  eq forcePattern(P) = done .
+  eq forceVect(Spec) = done .
+  eq forceBranch(Br) = done .
+
+  ------------------------------------------------------------
+  --- Generic GHZ circuit family
+  ---
+  --- For logical width K >= 2:
+  ---   CZG(0,1) ; J(0,1) ;
+  ---   CZG(1,2) ; J(0,2) ;
+  ---   ...
+  ---   CZG(K-2,K-1) ; J(0,K-1)
+  ------------------------------------------------------------
+
+  op ghzGatesFrom : Nat Nat Nat -> List{Gate} .
+
+  ceq ghzGatesFrom(K, PREV, CURR) = nil
+    if CURR >= K .
+
+  ceq ghzGatesFrom(K, PREV, CURR)
+    = CZG(PREV, CURR)
+      J('0pi, CURR)
+      ghzGatesFrom(K, CURR, s(CURR))
+    if CURR < K .
+
+  op ghzGates : Nat -> List{Gate} .
+  eq ghzGates(K) = ghzGatesFrom(K, 0, 1) .
+
+  ------------------------------------------------------------
+  --- Generic K-qubit GHZ specification
+  ------------------------------------------------------------
+
+  op zerosN : Nat -> Vect .
+  op onesN  : Nat -> Vect .
+
+  eq zerosN(0) = unitV .
+  eq zerosN(s(K)) = zerosN(K) (x) |0> .
+
+  eq onesN(0) = unitV .
+  eq onesN(s(K)) = onesN(K) (x) |1> .
+
+  ------------------------------------------------------------
+  --- Memoized transformed patterns and specifications
+  ---
+  --- GHZP(K) includes compile -> std -> sshift only when first
+  --- normalized.  With "set clear memo off", a warm-up reduction
+  --- stores the transformed pattern and excludes transformation
+  --- from the following measured reduction.
+  ------------------------------------------------------------
+
+  op GHZP    : Nat -> Pattern [memo] .
+  op GHZSpec : Nat -> Vect    [memo] .
+
+  eq GHZP(K) = wfPattern(K, ghzGates(K), nil) .
+
+  eq GHZSpec(K)
+    = 1 ./ sqrt(2) . (zerosN(K) + onesN(K)) .
+
+  ------------------------------------------------------------
+  --- Memoized aliases for representative workloads
+  ------------------------------------------------------------
+
+  op RQ3TeleP        : -> Pattern [memo] .
+  op RQ3TeleSpec     : -> Vect    [memo] .
+  op RQ3CNOTP        : -> Pattern [memo] .
+  op RQ3CNOTSpec     : -> Vect    [memo] .
+  op RQ3BitFlip3P    : -> Pattern [memo] .
+  op RQ3BitFlip3Spec : -> Vect    [memo] .
+  op RQ3GHZ5P        : -> Pattern [memo] .
+  op RQ3GHZ5Spec     : -> Vect    [memo] .
+
+  eq RQ3TeleP        = TeleP .
+  eq RQ3TeleSpec     = TeleSpec .
+  eq RQ3CNOTP        = CNOTP .
+  eq RQ3CNOTSpec     = CNOTSpec .
+  eq RQ3BitFlip3P    = BitFlip3P .
+  eq RQ3BitFlip3Spec = BitFlip3Spec .
+  eq RQ3GHZ5P        = GHZ5P .
+  eq RQ3GHZ5Spec     = GHZ5Spec .
+
+  ------------------------------------------------------------
+  --- Main comparison expressions
+  ------------------------------------------------------------
+
+  op fullCost     : Pattern Vect -> Bool .
+  op singleCost   : Pattern Vect -> Bool .
+  op proposedCost : Pattern Vect -> Verdict .
+
+  eq fullCost(P, Spec) = checkF(run(P), Spec) .
+  eq singleCost(P, Spec) = checkF(runSingle(P), Spec) .
+  eq proposedCost(P, Spec) = verifyP(P, Spec) .
+
+  ------------------------------------------------------------
+  --- Exact checker-only control flow corresponding to verifyP
+  --- up to, but not including, runSingle and checkF
+  ------------------------------------------------------------
+
+  op precheckP         : Pattern -> Bool .
+  op precheckStepWF    : Bool Pattern -> Bool .
+  op precheckStepCMD   : Bool Pattern -> Bool .
+  op precheckStepConst : Bool Pattern -> Bool .
+  op precheckStepGflow : Bool -> Bool .
+
+  eq precheckP(P)
+    = precheckStepWF(checkWF(P), P) .
+
+  eq precheckStepWF(false, P) = false .
+  eq precheckStepWF(true, P)
+    = precheckStepCMD(checkCMD(P), P) .
+
+  eq precheckStepCMD(false, P) = false .
+  eq precheckStepCMD(true, P)
+    = precheckStepConst(allConstZero(P), P) .
+
+  eq precheckStepConst(false, P) = false .
+  eq precheckStepConst(true, P)
+    = precheckStepGflow(checkGflowRealized(P)) .
+
+  eq precheckStepGflow(B) = B .
+
+  ------------------------------------------------------------
+  --- Initial-state and entangled-state diagnostics
+  ------------------------------------------------------------
+
+  op initOf : Pattern -> Branch .
+  eq initOf(< VS, In, OUTS, LC >)
+    = Ninit(VS, In) .
+
+  op entangledInitOf : Pattern -> Branch .
+  eq entangledInitOf(< VS, In, OUTS, LC >)
+    = E(
+        size(VS),
+        edgesOf(< VS, In, OUTS, LC >),
+        Ninit(VS, In)
+      ) .
+
+  ------------------------------------------------------------
+  --- Workload metadata
+  ------------------------------------------------------------
+
+  op vertexCount      : Pattern -> Nat .
+  op outputCount      : Pattern -> Nat .
+  op measurementCount : Pattern -> Nat .
+  op expectedBranches : Pattern -> Nat .
+
+  eq vertexCount(< VS, In, OUTS, LC >) = size(VS) .
+  eq outputCount(< VS, In, OUTS, LC >) = size(OUTS) .
+  eq measurementCount(P) = size(measOrder(P)) .
+  eq expectedBranches(P) = 2 ^ measurementCount(P) .
+
+endfm

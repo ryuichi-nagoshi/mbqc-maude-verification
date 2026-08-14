@@ -1,0 +1,19 @@
+		     \||||||||||||||||||/
+		   --- Welcome to Maude ---
+		     /||||||||||||||||||\
+	     Maude 3.5 built: Sep 25 2024 12:00:00
+	     Copyright 1997-2024 SRI International
+		   Sat Aug  8 18:46:07 2026
+==========================================
+reduce in RQ3-CORE : forcePattern(GHZP(3)) .
+rewrites: 203 in 0ms cpu (0ms real) (~ rewrites/second)
+result Probe: done
+==========================================
+reduce in RQ3-CORE : forceVect(GHZSpec(3)) .
+rewrites: 14 in 0ms cpu (0ms real) (~ rewrites/second)
+result Probe: done
+==========================================
+reduce in RQ3-CORE : fullCost(GHZP(3), GHZSpec(3)) .
+rewrites: 34349 in 20ms cpu (18ms real) (1717450 rewrites/second)
+result Bool: true
+Bye.

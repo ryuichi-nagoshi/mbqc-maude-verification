@@ -1,0 +1,153 @@
+load Command.maude
+
+
+fmod MBQC-STD is
+  pr MBQC-LANG .
+
+    op std : Pattern -> Pattern .
+    op out : Pattern -> Pattern .
+
+    op xorIns : Nat List{Nat} -> List{Nat} .
+    op normLN : List{Nat} -> List{Nat} .
+    op xorAcc : List{Nat} List{Nat} -> List{Nat} .
+    op splus : Signal Signal -> Signal .
+
+    var LC LC1 LC2 : List{Command} .
+    var V O LN LN1 LN2 : List{Nat} .
+    var In : List{PairNV} . ---input
+    var LPN : List{PairN} .
+    var N M N1 N2 N3 : Nat .
+    var sg sg1 sg2 : Signal .
+    var A : Ang .
+    var B B1 B2 : Bit .
+    var P : Pattern .
+
+    ---ソート済みリストに要素を追加する
+    eq  xorIns(N, nil)    = N .
+    ceq xorIns(N, M LN)   = M xorIns(N, LN) if M < N .
+    eq  xorIns(N, N LN)   = LN .
+    ceq xorIns(N, M LN)   = N M LN if N < M .
+
+    eq normLN(nil)  = nil .
+    eq normLN(N LN) = xorIns(N, normLN(LN)) .
+
+    eq xorAcc(LN1, nil) = LN1 .
+    eq xorAcc(LN1, N LN2) = xorAcc(xorIns(N, LN1), LN2) .
+
+    eq splus([B1, LN1], [B2, LN2]) = [ B1 (+) B2, xorAcc(normLN(LN1), LN2) ] .
+
+    ---EX->XZE
+    eq [EX1] : std(< V, In, O, LC1 E(< N1,N2 >) X(N1, sg) LC2 >) 
+                = std(< V, In, O, LC1 X(N1, sg) Z(N2, sg) E(< N1,N2 >) LC2 >)  .
+    
+    eq [EX2] : std(< V, In, O, LC1 E(< N1,N2 >) X(N2, sg) LC2 >) 
+                = std(< V, In, O, LC1 X(N2, sg) Z(N1, sg) E(< N1,N2 >) LC2 >)  .
+    
+    ---EZ->ZE
+    ceq [EZ] : std(< V, In, O, LC1 E(< N1,N2 >) Z(N, sg) LC2 >) 
+                = std(< V, In, O, LC1 Z(N, sg) E(< N1,N2 >) LC2 >)  if N == N1 or N == N2 .
+    
+    ---EX-disjoint
+    ceq [EX-disjoint] : std(< V, In, O, LC1 E(< N1,N2 >) X(N, sg) LC2 >)
+                        = std(< V, In, O, LC1 X(N, sg) E(< N1,N2 >) LC2 >) if N =/= N1 /\ N =/= N2 .
+    ---EX-disjoint
+    ceq [EZ-disjoint] : std(< V, In, O, LC1 E(< N1,N2 >) Z(N, sg) LC2 >)
+                        = std(< V, In, O, LC1 Z(N, sg) E(< N1,N2 >) LC2 >) if N =/= N1 /\ N =/= N2 .
+
+    ---EM-disjoint
+    ceq [EM-disjoint] : std(< V, In, O, LC1 E(< N1, N2 >) M(N, A, sg1, sg2) LC2 >)
+                        = std(< V, In, O, LC1 M(N, A, sg1, sg2) E(< N1, N2 >) LC2 >) if N =/= N1 /\ N =/= N2 .
+
+    ---MX->M
+    eq [MX] : std(< V, In, O, LC1 M(N, A, sg1, sg2) X(N, sg) LC2 >) 
+                = std(< V, In, O, LC1 M(N, A, splus(sg1, sg), sg2) LC2 >) .
+                
+    ---MZ->M
+    eq [MZ] : std(< V, In, O, LC1 M(N, A, sg1, sg2) Z(N, sg) LC2 >) 
+                = std(< V, In, O, LC1 M(N, A, sg1, splus(sg2, sg)) LC2 >) .
+
+    ---MX-disjoint
+    ceq [MX-disjoint] : std(< V, In, O, LC1 M(N1, A, sg1, sg2) X(N2, sg) LC2 >) 
+                        = std(< V, In, O, LC1 X(N2, sg) M(N1, A, sg1, sg2)  LC2 >) if N1 =/= N2 .
+    
+    ---MZ-disjoint
+    ceq [MZ-disjoint] : std(< V, In, O, LC1 M(N1, A, sg1, sg2) Z(N2, sg) LC2 >) 
+                        = std(< V, In, O, LC1 Z(N2, sg) M(N1, A, sg1, sg2)  LC2 >) if N1 =/= N2 .
+    --- fixed-point stop: when no above equation applies -----------------
+    eq std(P) = P [owise] .
+
+endfm
+
+
+
+fmod SIGNAL-SHIFTING is
+    pr MBQC-STD .
+
+    op sshift : Pattern -> Pattern .
+    op S : Nat Signal -> Command .
+    op out : Pattern -> Pattern .
+
+    var LC LC1 LC2 : List{Command} .
+    var V O LN LN1 LN2 : List{Nat} .
+    var In : List{PairNV} . ---input
+    var LPN : List{PairN} .
+    var N M N1 N2 N3 : Nat .
+    var sg sg1 sg2 : Signal .
+    var A : Ang .
+    var B B1 B2 : Bit .
+    var P : Pattern .
+    
+
+    ---membership（用はNがLNに入っているか探す）
+    op memN  : Nat List{Nat} -> Bool .
+    eq memN(N, nil) = false .
+    ceq memN(N, M LN) = true  if N == M .
+    ceq memN(N, M LN) = memN(N, LN) if N =/= M .
+
+    ---apply substitution si := (t + si)  to a signal
+    op shSig : Signal Nat Signal -> Signal .
+    ceq shSig([B, LN], N, sg) = splus([B, LN], sg) if memN(N, normLN(LN)) == true .
+    ceq shSig([B, LN], N, sg) = [B, LN] if memN(N, normLN(LN)) == false .
+
+    ---
+    op zeroS : -> Signal .
+    eq zeroS = [zero, nil] .
+
+    
+    ---op isZeroS : Signal -> Bool .
+    ---eq isZeroS(zeroS) = true .
+    ---ceq isZeroS(sg) = false if sg =/= zeroS .
+    
+    ---pull out t-signal from M
+    ceq [S-M] : sshift((< V, In, O, LC1 M(N, A, sg1, sg2) LC2 >))
+                = sshift((< V, In, O, LC1  S(N, sg2) M(N, A, sg1, zeroS) LC2 >)) if sg2 =/= zeroS .
+
+    ---XS->SX
+    eq [XS] : sshift((< V, In, O, LC1 X(N1, sg1) S(N2, sg2) LC2 >))
+                = sshift((< V, In, O, LC1  S(N2, sg2) X(N1, shSig(sg1, N2, sg2)) LC2 >)) .
+
+    ---ZS->SZ
+    eq [ZS] : sshift((< V, In, O, LC1 Z(N1, sg1) S(N2, sg2) LC2 >))
+                = sshift((< V, In, O, LC1  S(N2, sg2) Z(N1, shSig(sg1, N2, sg2)) LC2 >)) .
+
+    ---MS->SM
+    eq [MS] : sshift(< V, In, O, LC1 M(N1, A, sg1, sg2) S(N2, sg) LC2 >)
+                = sshift(< V, In, O, LC1 S(N2, sg) M(N1, A, shSig(sg1, N2, sg), shSig(sg2, N2, sg)) LC2 >) .
+    
+    ---S-S(loop回避版)N1 > N2 のときだけ swap
+    ceq [SS-ORD] : sshift(< V, In, O, LC1 S(N1, sg1) S(N2, sg2) LC2 >) = sshift(< V, In, O, LC1 S(N2, sg2) S(N1, shSig(sg1, N2, sg2)) LC2 >) if N1 > N2 .
+
+    ---delete S(N, [zero, nil]),original
+    eq [S0] : sshift(< V, In, O, LC1 S(N, zeroS) LC2 >)
+                = sshift(< V, In, O, LC1 LC2 >) .
+    ---dropS
+    eq [SDROP] : sshift(< V, In, O, S(N, sg) LC >)
+                  =  sshift(< V, In, O, LC >) .
+    --- fixed-point stop --------------------------------------------------
+    eq sshift(P) = P [owise] .
+   
+endfm
+
+------------------------------------------------------------
+--- Checker modules are defined together in checker.maude.
+------------------------------------------------------------

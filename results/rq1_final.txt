@@ -1,0 +1,129 @@
+		     \||||||||||||||||||/
+		   --- Welcome to Maude ---
+		     /||||||||||||||||||\
+	     Maude 3.5 built: Sep 25 2024 12:00:00
+	     Copyright 1997-2024 SRI International
+		   Sat Aug  8 18:18:16 2026
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(Tele0BaseP, Tele0Spec) .
+rewrites: 11672 in 4ms cpu (4ms real) (2918000 rewrites/second)
+result RQ1Result: r1R(true, true, pass, acceptedAgreement)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(TelePlusBaseP, TelePlusSpec) .
+rewrites: 15454 in 8ms cpu (9ms real) (1931750 rewrites/second)
+result RQ1Result: r1R(true, true, pass, acceptedAgreement)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(CNOTXBaseP, CNOTXSpec) .
+rewrites: 15385 in 8ms cpu (7ms real) (1923125 rewrites/second)
+result RQ1Result: r1R(true, true, pass, acceptedAgreement)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(CNOTZBaseP, CNOTZSpec) .
+rewrites: 42259 in 24ms cpu (23ms real) (1760791 rewrites/second)
+result RQ1Result: r1R(true, true, pass, acceptedAgreement)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(ZConstBaseP, ZConstSpec) .
+rewrites: 10566 in 8ms cpu (6ms real) (1320750 rewrites/second)
+result RQ1Result: r1R(true, true, pass, acceptedAgreement)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(AngleBaseP, AngleSpec) .
+rewrites: 3892 in 0ms cpu (2ms real) (~ rewrites/second)
+result RQ1Result: r1R(true, true, pass, acceptedAgreement)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(XDelP, CNOTXSpec) .
+rewrites: 11496 in 4ms cpu (6ms real) (2874000 rewrites/second)
+result RQ1Result: r1R(true, false, error-gflow, unsafePrevented)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(XTgtP, CNOTXSpec) .
+rewrites: 12217 in 8ms cpu (8ms real) (1527125 rewrites/second)
+result RQ1Result: r1R(true, false, error-gflow, unsafePrevented)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(XDepP, CNOTXSpec) .
+rewrites: 12236 in 8ms cpu (5ms real) (1529500 rewrites/second)
+result RQ1Result: r1R(true, false, error-gflow, unsafePrevented)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(ZDelP, CNOTZSpec) .
+rewrites: 30599 in 16ms cpu (16ms real) (1912437 rewrites/second)
+result RQ1Result: r1R(true, false, error-gflow, unsafePrevented)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(ZDepP, CNOTZSpec) .
+rewrites: 32091 in 16ms cpu (16ms real) (2005687 rewrites/second)
+result RQ1Result: r1R(true, false, error-gflow, unsafePrevented)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(ZConstMutP, ZConstSpec) .
+rewrites: 7498 in 4ms cpu (4ms real) (1874500 rewrites/second)
+result RQ1Result: r1R(true, false, error-nonzero-const, unsafePrevented)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(EDelP, Tele0Spec) .
+rewrites: 8042 in 4ms cpu (4ms real) (2010500 rewrites/second)
+result RQ1Result: r1R(false, false, error-gflow, detectedWithoutGating)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(ETgtP, Tele0Spec) .
+rewrites: 8875 in 4ms cpu (3ms real) (2218750 rewrites/second)
+result RQ1Result: r1R(false, false, error-gflow, detectedWithoutGating)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(EAddNewP, TelePlusSpec) .
+rewrites: 13730 in 8ms cpu (6ms real) (1716250 rewrites/second)
+result RQ1Result: r1R(false, false, error-gflow, detectedWithoutGating)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(AngleMutP, AngleSpec) .
+rewrites: 3861 in 0ms cpu (1ms real) (~ rewrites/second)
+result RQ1Result: r1R(false, false, fail, detectedWithoutGating)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(MSDelP, CNOTXSpec) .
+rewrites: 12054 in 8ms cpu (4ms real) (1506750 rewrites/second)
+result RQ1Result: r1R(true, true, error-gflow, conservativeReject)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(MConstP, Tele0Spec) .
+rewrites: 8704 in 4ms cpu (4ms real) (2176000 rewrites/second)
+result RQ1Result: r1R(true, true, error-nonzero-const, conservativeReject)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(MSDupParityP, CNOTXSpec) .
+rewrites: 15342 in 8ms cpu (8ms real) (1917750 rewrites/second)
+result RQ1Result: r1R(true, true, pass, acceptedAgreement)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : rq1Report(ETripleParityP, Tele0Spec) .
+rewrites: 14134 in 4ms cpu (5ms real) (3533500 rewrites/second)
+result RQ1Result: r1R(true, true, pass, acceptedAgreement)
+==========================================
+reduce in TEST-RQ1-INTEGRATED : criticalUnsoundAccept?(XDelP, CNOTXSpec) .
+rewrites: 8525 in 8ms cpu (6ms real) (1065625 rewrites/second)
+result Bool: false
+==========================================
+reduce in TEST-RQ1-INTEGRATED : criticalUnsoundAccept?(XTgtP, CNOTXSpec) .
+rewrites: 9226 in 4ms cpu (3ms real) (2306500 rewrites/second)
+result Bool: false
+==========================================
+reduce in TEST-RQ1-INTEGRATED : criticalUnsoundAccept?(XDepP, CNOTXSpec) .
+rewrites: 9257 in 4ms cpu (3ms real) (2314250 rewrites/second)
+result Bool: false
+==========================================
+reduce in TEST-RQ1-INTEGRATED : criticalUnsoundAccept?(ZDelP, CNOTZSpec) .
+rewrites: 21252 in 12ms cpu (12ms real) (1771000 rewrites/second)
+result Bool: false
+==========================================
+reduce in TEST-RQ1-INTEGRATED : criticalUnsoundAccept?(ZDepP, CNOTZSpec) .
+rewrites: 22806 in 12ms cpu (11ms real) (1900500 rewrites/second)
+result Bool: false
+==========================================
+reduce in TEST-RQ1-INTEGRATED : criticalUnsoundAccept?(ZConstMutP, ZConstSpec)
+    .
+rewrites: 4673 in 4ms cpu (2ms real) (1168250 rewrites/second)
+result Bool: false
+==========================================
+reduce in TEST-RQ1-INTEGRATED : criticalUnsoundAccept?(EDelP, Tele0Spec) .
+rewrites: 6033 in 0ms cpu (2ms real) (~ rewrites/second)
+result Bool: false
+==========================================
+reduce in TEST-RQ1-INTEGRATED : criticalUnsoundAccept?(ETgtP, Tele0Spec) .
+rewrites: 6526 in 4ms cpu (3ms real) (1631500 rewrites/second)
+result Bool: false
+==========================================
+reduce in TEST-RQ1-INTEGRATED : criticalUnsoundAccept?(EAddNewP, TelePlusSpec)
+    .
+rewrites: 9607 in 4ms cpu (5ms real) (2401750 rewrites/second)
+result Bool: false
+==========================================
+reduce in TEST-RQ1-INTEGRATED : criticalUnsoundAccept?(AngleMutP, AngleSpec) .
+rewrites: 2918 in 4ms cpu (1ms real) (729500 rewrites/second)
+result Bool: false
+Bye.

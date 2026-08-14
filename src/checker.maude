@@ -1,0 +1,655 @@
+load compile_wire.maude
+
+------------------------------------------------------------
+--- Integrated checker modules
+------------------------------------------------------------
+--- This file is the single load unit for all static and
+--- semantic checkers used by MBQC-WORKFLOW.  Module
+--- boundaries are preserved so each checker can still be
+--- imported and tested independently.
+------------------------------------------------------------
+
+------------------------------------------------------------
+--- Public circuit/input validation
+------------------------------------------------------------
+fmod MBQC-PUBLIC-INPUT-CHECKER is
+  pr COMPILE-WIRE .
+  pr BOOL .
+
+  vars N W W1 W2 : Nat .
+  var A : Ang .
+  var LG : List{Gate} .
+  var LNV : List{PairNV} .
+
+  ------------------------------------------------------------
+  --- Circuit validation
+  ------------------------------------------------------------
+  --- The public workflow requires at least one initial wire.
+  --- For a positive wire count, the empty gate list is accepted
+  --- as the identity circuit.
+  ------------------------------------------------------------
+
+  op checkCircuit : Nat List{Gate} -> Bool .
+  op checkCircuitGates : Nat List{Gate} -> Bool .
+
+  eq checkCircuit(0, LG) = false .
+  eq checkCircuit(s(N), LG) = checkCircuitGates(s(N), LG) .
+
+  eq checkCircuitGates(N, nil) = true .
+
+  eq checkCircuitGates(N, J(A, W) LG)
+    = (W < N)
+      and checkCircuitGates(N, LG) .
+
+  eq checkCircuitGates(N, CZG(W1, W2) LG)
+    = (W1 < N)
+      and (W2 < N)
+      and not(W1 == W2)
+      and checkCircuitGates(N, LG) .
+
+  ------------------------------------------------------------
+  --- Input-state validation
+  ------------------------------------------------------------
+  --- wfBlocksFrom checks that:
+  ---   * every block has a nonempty wire list;
+  ---   * wires inside a block form an ascending interval;
+  ---   * blocks are ordered and pairwise disjoint;
+  ---   * every wire is below the public wire count N; and
+  ---   * the state size equals the number of wires in the block.
+  ---
+  --- Empty and partial inputs are accepted for N > 0.
+  --- Ninit initializes every unspecified wire to |+>.
+  --- A multi-qubit state, such as an EPR state, is accepted when
+  --- it is assigned to one consecutive wire block of matching size.
+  ------------------------------------------------------------
+
+  op checkInput : Nat List{PairNV} -> Bool .
+
+  eq checkInput(0, LNV) = false .
+  eq checkInput(s(N), LNV) = wfBlocksFrom(s(N), 0, LNV) .
+
+endfm
+
+------------------------------------------------------------
+--- Pattern well-formedness checker
+------------------------------------------------------------
+fmod MBQC-PATTERN-WF-CHECKER is
+  pr SIGNAL-SHIFTING .
+  pr BOOL .
+
+  vars N N1 N2 : Nat .
+  vars V O LN LN1 LN2 Measured : List{Nat} .
+  var In : List{PairNV} .
+  var LPN : List{PairN} .
+  vars LC : List{Command} .
+  var C : Command .
+  vars SG SG1 SG2 : Signal .
+  var A : Ang .
+
+  ------------------------------------------------------------
+  --- Pattern metadata
+  ------------------------------------------------------------
+
+  --- Every vertex identifier must be below |V|.
+  op allNatBelowWF : Nat List{Nat} -> Bool .
+
+  eq allNatBelowWF(N, nil) = true .
+  eq allNatBelowWF(N, N1 LN)
+    = (N1 < N) and allNatBelowWF(N, LN) .
+
+  --- V is nonempty and represents {0, ..., |V|-1}.
+  --- Its list order is intentionally not fixed.
+  op validVertsWF : List{Nat} -> Bool .
+
+  eq validVertsWF(nil) = false .
+  eq validVertsWF(N LN)
+    = noDupNat(N LN)
+      and allNatBelowWF(size(N LN), N LN) .
+
+  --- Output order may encode logical-wire order, so O need not be
+  --- ascending.  It must nevertheless be a duplicate-free subset of V.
+  op validOutputsWF : List{Nat} List{Nat} -> Bool .
+
+  eq validOutputsWF(O, V)
+    = noDupNat(O) and allNatIn(O, V) .
+
+  --- V \ O, retaining the order in V.
+  op nonOutputsWF : List{Nat} List{Nat} -> List{Nat} .
+
+  eq nonOutputsWF(nil, O) = nil .
+  ceq nonOutputsWF(N V, O) = nonOutputsWF(V, O)
+    if containsNat(N, O) == true .
+  ceq nonOutputsWF(N V, O) = N nonOutputsWF(V, O)
+    if containsNat(N, O) == false .
+
+  --- Set equality for duplicate-free Nat lists.
+  op sameNatSetWF : List{Nat} List{Nat} -> Bool .
+
+  eq sameNatSetWF(LN1, LN2) = validOutputOrder(LN1, LN2) .
+
+  ------------------------------------------------------------
+  --- Signals and entanglement commands
+  ------------------------------------------------------------
+
+  --- Dependencies are checked as written, without parity
+  --- normalization.  evalSig/getBit reads every listed outcome.
+  ---
+  --- zero and one are valid MC constant bits.  errB is an execution
+  --- error value and is not a valid signal constant.
+  op depsReadyWF : Signal List{Nat} -> Bool .
+
+  eq depsReadyWF([zero, LN], Measured) = allNatIn(LN, Measured) .
+  eq depsReadyWF([one,  LN], Measured) = allNatIn(LN, Measured) .
+  eq depsReadyWF([errB, LN], Measured) = false .
+
+  op checkWFEdges : List{PairN} List{Nat} List{Nat} -> Bool .
+
+  eq checkWFEdges(nil, V, Measured) = true .
+  eq checkWFEdges(< N1, N2 > LPN, V, Measured)
+    = containsNat(N1, V)
+      and containsNat(N2, V)
+      and not(N1 == N2)
+      and not(containsNat(N1, Measured))
+      and not(containsNat(N2, Measured))
+      and checkWFEdges(LPN, V, Measured) .
+
+  ------------------------------------------------------------
+  --- Command-sequence scan
+  ------------------------------------------------------------
+
+  op checkWFLC :
+    List{Command} List{Nat} List{Nat} List{Nat} -> Bool .
+
+  --- At completion, exactly the non-output qubits must have been
+  --- measured.  This also guarantees that output qubits remain
+  --- unmeasured and that every non-output is measured once.
+  eq checkWFLC(nil, V, O, Measured)
+    = sameNatSetWF(Measured, nonOutputsWF(V, O)) .
+
+  --- E may act only on distinct, existing, unmeasured qubits.
+  --- E(nil) is accepted, and repeated edges are intentionally allowed.
+  eq checkWFLC(LC E(LPN), V, O, Measured)
+    = checkWFEdges(LPN, V, Measured)
+      and checkWFLC(LC, V, O, Measured) .
+
+  --- A measurement may use only outcomes already available at this
+  --- point in the right-to-left execution order.
+  eq checkWFLC(LC M(N, A, SG1, SG2), V, O, Measured)
+    = containsNat(N, V)
+      and not(containsNat(N, Measured))
+      and not(containsNat(N, O))
+      and depsReadyWF(SG1, Measured)
+      and depsReadyWF(SG2, Measured)
+      and checkWFLC(LC, V, O, N Measured) .
+
+  --- Corrections may target either an output or a qubit that will be
+  --- measured later, but never a qubit already measured.
+  eq checkWFLC(LC X(N, SG), V, O, Measured)
+    = containsNat(N, V)
+      and not(containsNat(N, Measured))
+      and depsReadyWF(SG, Measured)
+      and checkWFLC(LC, V, O, Measured) .
+
+  eq checkWFLC(LC Z(N, SG), V, O, Measured)
+    = containsNat(N, V)
+      and not(containsNat(N, Measured))
+      and depsReadyWF(SG, Measured)
+      and checkWFLC(LC, V, O, Measured) .
+
+  --- S is an auxiliary signal-shifting command.  It is not valid in
+  --- a compiler output and must not remain after signal shifting.
+  eq checkWFLC(LC S(N, SG), V, O, Measured) = false .
+
+  --- Keep the checker total if Command is extended in the future.
+  eq checkWFLC(LC C, V, O, Measured) = false [owise] .
+
+  ------------------------------------------------------------
+  --- Whole-pattern checker
+  ------------------------------------------------------------
+
+  op checkWF : Pattern -> Bool .
+
+  eq checkWF(< V, In, O, LC >)
+    = validVertsWF(V)
+      and wfBlocksFrom(size(V), 0, In)
+      and validOutputsWF(O, V)
+      and checkWFLC(LC, V, O, nil) .
+
+endfm
+
+------------------------------------------------------------
+--- Standard-form and signal-shifting checker
+------------------------------------------------------------
+fmod RLCHECKER is
+    pr SIGNAL-SHIFTING .
+
+    op checkT : List{Command} -> Bool .
+    op phase : Command -> Nat .
+
+    op checkPhase : Pattern -> Bool .
+    op allTzero : Pattern -> Bool .
+    op checkCMD : Pattern -> Bool .
+
+    var LC LC1 LC2 : List{Command} .
+    var C C1 C2 : Command .
+    var V O LN LN1 LN2 : List{Nat} .
+    var In : List{PairNV} . ---input
+    var LPN : List{PairN} .
+    var N M N1 N2 N3 : Nat .
+    var sg sg1 sg2 : Signal .
+    var A : Ang .
+    var B B1 B2 : Bit .
+    var P : Pattern .
+
+    eq checkT(nil) = true .
+    ceq checkT(M(N, A, sg1, sg2) LC) = checkT(LC) if sg2 == zeroS .
+    ceq checkT(M(N, A, sg1, sg2) LC) = false if sg2 =/= zeroS .
+    eq  checkT(C LC) = checkT(LC) [owise] .
+
+    eq phase(E(LPN)) = 1 .
+    eq phase(M(N, A, sg1, sg2)) = 2 .
+    eq phase(X(N, sg)) = 3 .
+    eq phase(Z(N, sg)) = 3 .
+    eq phase(S(N, sg)) = 4 .
+
+    op isEMC : List{Command} -> Bool .
+    op isPhase : List{Command} Nat -> Bool .
+
+    eq isEMC(LC) = isPhase(LC, 3) .
+
+    ceq isPhase(C LC, N) = isPhase(LC, phase(C)) if N >= phase(C)  /\ phase(C) < 4 .
+    ceq isPhase(C LC, N) = false if phase(C) > N or phase(C) == 4 .
+    ceq isPhase(nil, N) = true if N =/= 4 .
+
+    ------------------------------------
+    ------------------------------------
+
+    eq allTzero(< V, In, O, LC >) = checkT(LC) .
+    eq allTzero(sshift(< V, In, O, LC >)) = checkT(LC) . 
+
+    eq checkPhase(< V, In, O, LC >) = isEMC(LC) .
+    eq checkPhase(sshift(< V, In, O, LC >)) = isEMC(LC) .
+
+    eq checkCMD(P) = allTzero(P) and checkPhase(P) .
+endfm
+
+------------------------------------------------------------
+--- Realized-gflow checker
+------------------------------------------------------------
+fmod MBQC-GFLOW-BASIC is
+    pr SIGNAL-SHIFTING .
+    pr LIST{Nat} .
+    pr LIST{PairN} .
+    pr LIST{Command} .
+    pr LIST{PairNV} .
+    pr BOOL .
+
+    --- optional graph view
+    sort OpenGraph .
+    op <_,_,_,_> : List{Nat} List{Nat} List{Nat} List{PairN} -> OpenGraph [ctor] .
+
+    --- accessors
+    op pVerts : Pattern -> List{Nat} .
+    op pInputs : Pattern -> List{Nat} .
+    op pOuts : Pattern -> List{Nat} .
+    op pCmds : Pattern -> List{Command} .
+
+    --- input flattening
+    op inQubits : List{PairNV} -> List{Nat} .
+
+    --- edge extraction 
+    op edgesOf : Pattern -> List{PairN} .
+    op edgesOfLC : List{Command} -> List{PairN} .
+
+    --- graph construction
+    op ogOf : Pattern -> OpenGraph .
+
+    --- signal domain / dependency
+    op sigDom : Signal -> List{Nat} .
+    op hasDep : Nat Signal -> Bool .
+
+    --- variables
+    var V O LN LN1 I0 O0 K : List{Nat} .
+    var In : List{PairNV} .
+    var LC : List{Command} .
+    var LPN : List{PairN} .
+    var N N1 N2 : Nat .
+    var B : Bit .
+    var SG SG1 SG2 : Signal .
+    var A : Ang .
+    var VB : Vect .
+    var C : Command .
+    var Eds : List{PairN} .
+    var PN : PairN .
+    var G : OpenGraph .
+    var Ptn : Pattern . 
+
+    --- pattern accessors
+    eq pVerts(< V, In, O, LC >)  = V .
+    eq pInputs(< V, In, O, LC >) = inQubits(In) .
+    eq pOuts(< V, In, O, LC >) = O .
+    eq pCmds(< V, In, O, LC >) = LC .
+
+    --- flatten input blocks
+    eq inQubits(nil) = nil .
+    eq inQubits(< LN @ VB > In ) = LN inQubits(In) .
+
+    --- extract edges from a pattern
+    eq edgesOf(< V, In, O, LC >) = edgesOfLC(LC) .
+
+    eq edgesOfLC(nil) = nil .
+    eq edgesOfLC(E(LPN) LC) = LPN edgesOfLC(LC) .
+    eq edgesOfLC(C LC) = edgesOfLC(LC) [owise] .
+
+    --- package as open graph
+    eq ogOf(< V, In, O, LC >) = < V, inQubits(In), O, edgesOfLC(LC) > .
+    
+    --- signal domain
+    eq sigDom([B, LN]) = normLN(LN) .
+
+    --- dependency test
+    eq hasDep(N, SG) = memN(N, sigDom(SG)) .
+
+    --- target extraction
+    op xTargetsLC : Nat List{Command} -> List{Nat} .
+    op zTargetsLC : Nat List{Command} -> List{Nat} .
+
+    --- parity normalization ande realized strategy
+    op parNorm : List{Nat} -> List{Nat} .
+    op gOf : Nat Pattern -> List{Nat} .
+    op actualZOf : Nat Pattern -> List{Nat} .
+
+    --- X-side raw targets of outcome s_N *rawは偶奇整列していない，集めただけのtargetの列
+    --- X(N1,SG) の signal に N が入っていれば，N1 を target に追加
+    --- M(N1,A,SG1,SG2) の SG1 に N が入っていれば，N1 を target に追加
+    --- それ以外は無視
+    eq xTargetsLC(N, nil) = nil .
+    ceq xTargetsLC(N, X(N1, SG) LC) = N1 xTargetsLC(N, LC) if hasDep(N, SG) == true .
+    ceq xTargetsLC(N, M(N1, A, SG1, SG2) LC) = N1 xTargetsLC(N, LC) if hasDep(N, SG1) == true .
+    eq xTargetsLC(N, C LC) = xTargetsLC(N, LC) [owise] .
+
+    --- Z-side raw targets of outcome s_N
+    eq zTargetsLC(N, nil) = nil .
+    ceq zTargetsLC(N, Z(N1, SG) LC) = N1 zTargetsLC(N, LC) if hasDep(N, SG) == true .
+    ceq zTargetsLC(N, M(N1, A, SG1, SG2) LC) = N1 zTargetsLC(N, LC) if hasDep(N, SG2) == true .
+    eq zTargetsLC(N, C LC) = zTargetsLC(N, LC) [owise] .
+
+    --- parity normalization
+    eq parNorm(LN) = normLN(LN) .
+    
+    --- realized correcting set from X-side
+    eq gOf(N, < V, In, O, LC >) = parNorm(xTargetsLC(N, LC)) .
+
+    --- realized Z-side bihavior
+    eq actualZOf(N, < V, In, O, LC >) = parNorm(zTargetsLC(N, LC)) .
+
+    --- OpenGraph accessors
+    op gVerts  : OpenGraph -> List{Nat} .
+    op gIns    : OpenGraph -> List{Nat} .
+    op gOuts   : OpenGraph -> List{Nat} .
+    op gEdges  : OpenGraph -> List{PairN} .
+    --- neighborhood
+    op nbrsFrom : Nat List{PairN} -> List{Nat} .
+    op nbrsOf   : Nat OpenGraph -> List{Nat} .
+    --- odd neighborhood
+    op oddHit?  : Nat List{Nat} OpenGraph -> Bool .
+    op oddOf    : List{Nat} OpenGraph -> List{Nat} .
+    op oddOfAcc : List{Nat} List{Nat} OpenGraph -> List{Nat} .
+    --- helpers
+    op removeNat : Nat List{Nat} -> List{Nat} .
+    --- expected Z-side behavior from graph
+    op expectedZOf : Nat Pattern -> List{Nat} .
+
+    --- OpenGraph accessors
+    eq gVerts(< V, I0, O0, Eds >) = V .
+    eq gIns(< V, I0, O0, Eds >)   = I0 .
+    eq gOuts(< V, I0, O0, Eds >)  = O0 .
+    eq gEdges(< V, I0, O0, Eds >) = Eds .
+
+    --- raw neighbors of N from an edge list
+    eq nbrsFrom(N, nil) = nil .
+    eq nbrsFrom(N, < N, N1 > Eds) = N1 nbrsFrom(N, Eds) .
+    eq nbrsFrom(N, < N1, N > Eds) = N1 nbrsFrom(N, Eds) .
+    eq nbrsFrom(N, PN Eds) = nbrsFrom(N, Eds) [owise] .
+
+    --- normalized neighborhood in an open graph
+    eq nbrsOf(N, G) = parNorm(nbrsFrom(N, gEdges(G))) .
+
+    --- does vertex N belong to Odd(K) ?
+    eq oddHit?(N, nil, G) = false .
+    ceq oddHit?(N, N1 K, G) = not (oddHit?(N, K, G)) if memN(N1, nbrsOf(N, G)) == true .
+    eq oddHit?(N, N1 K, G) = oddHit?(N, K, G) [owise] .
+
+        --- odd neighborhood of K in G
+    eq oddOf(K, G) = oddOfAcc(gVerts(G), parNorm(K), G) .
+    eq oddOfAcc(nil, K, G) = nil .
+    ceq oddOfAcc(N V, K, G) = N oddOfAcc(V, K, G) if oddHit?(N, K, G) == true .
+    eq oddOfAcc(N V, K, G) = oddOfAcc(V, K, G) [owise] .
+
+    --- remove a single vertex from a list
+    eq removeNat(N, nil) = nil .
+    ceq removeNat(N, N1 K) = removeNat(N, K) if N == N1 .
+    ceq removeNat(N, N1 K) = N1 removeNat(N, K) if N =/= N1 .
+
+    --- expected Z-side behavior from gOf and graph structure
+    eq expectedZOf(N, < V, In, O, LC >) = parNorm(removeNat(N, oddOf(gOf(N, < V, In, O, LC >), ogOf(< V, In, O, LC >)))) .
+
+    --- measurement order (execution order: earliest -> latest)
+    op measOrder : Pattern -> List{Nat} .
+    op measOrderLC : List{Command} -> List{Nat} .
+
+    --- order / future checks
+    op isMeasured : Nat Pattern -> Bool .
+    op beforeIn? : Nat Nat List{Nat} -> Bool .
+    op before? : Nat Nat Pattern -> Bool .
+    op futureOf? : Nat Nat Pattern -> Bool .
+    op allFuture? : Nat List{Nat} Pattern -> Bool .
+
+     --- measurement order in actual execution order
+    eq measOrder(< V, In, O, LC >) = measOrderLC(LC) .
+
+    eq measOrderLC(nil) = nil .
+    eq measOrderLC(M(N, A, SG1, SG2) LC) = measOrderLC(LC) N .
+    eq measOrderLC(C LC) = measOrderLC(LC) [owise] .
+
+    eq isMeasured(N, Ptn) = memN(N, measOrder(Ptn)) .
+
+    eq beforeIn?(N, N1, nil) = false .
+    eq beforeIn?(N, N1, N LN1) = memN(N1, LN1) .
+    eq beforeIn?(N, N1, N2 LN1) = beforeIn?(N, N1, LN1) [owise] .
+
+    eq before?(N, N1, Ptn) = beforeIn?(N, N1, measOrder(Ptn)) .
+
+    ceq futureOf?(N, N1, < V, In, O, LC >) = true if memN(N1, O) == true .
+    eq futureOf?(N, N1, Ptn) = before?(N, N1, Ptn) [owise] .
+
+    eq allFuture?(N, nil, Ptn) = true .
+    eq allFuture?(N, N1 LN1, Ptn) = futureOf?(N, N1, Ptn) and allFuture?(N, LN1, Ptn) .
+
+endfm
+
+fmod MBQC-GFLOW-CHECK is
+  pr MBQC-GFLOW-BASIC .
+
+  --- helpers
+  op disjoint? : List{Nat} List{Nat} -> Bool .
+  op checkGVerts : List{Nat} Pattern -> Bool .
+
+  --- local checks
+  op gNonEmpty?       : Nat Pattern -> Bool .
+  op gNonInput?       : Nat Pattern -> Bool .
+  op gFuture?         : Nat Pattern -> Bool .
+  op selfOdd?         : Nat Pattern -> Bool .
+  op oddFuture?       : Nat Pattern -> Bool .
+  op zConsistent?     : Nat Pattern -> Bool .
+
+  --- global checks
+  op checkGVertex     : Nat Pattern -> Bool .
+  op checkGflowRealized : Pattern -> Bool .
+
+  vars N M : Nat .
+  vars LN1 LN2 : List{Nat} .
+  var P : Pattern .
+
+  --- LN1 と LN2 が共通要素を持たないか
+  eq disjoint?(nil, LN2) = true .
+  ceq disjoint?(N LN1, LN2) = false if memN(N, LN2) == true .
+  ceq disjoint?(N LN1, LN2) = disjoint?(LN1, LN2) if memN(N, LN2) == false .
+
+  --- g(u) =/= empty
+  ceq gNonEmpty?(N, P) = false if gOf(N, P) == nil .
+  ceq gNonEmpty?(N, P) = true  if gOf(N, P) =/= nil .
+
+  --- g(u) \subset V \\ I を「input と交わらない」で見る
+  eq gNonInput?(N, P) = disjoint?(gOf(N, P), pInputs(P)) .
+
+  --- g(u) の各要素が u の future にあるか
+  eq gFuture?(N, P) = allFuture?(N, gOf(N, P), P) .
+
+  --- u \in Odd(g(u))
+  eq selfOdd?(N, P) = oddHit?(N, gOf(N, P), ogOf(P)) .
+
+  --- Odd(g(u)) \ {u} の各要素が u の future にあるか
+  eq oddFuture?(N, P) = allFuture?(N, expectedZOf(N, P), P) .
+
+  --- pattern の Z-side と graph 由来 expected Z-side の一致
+  eq zConsistent?(N, P) = (actualZOf(N, P) == expectedZOf(N, P)) .
+
+    ------------------------------------------------------------
+  --- Realized-gflow acceptance
+  ---
+  --- Precondition:
+  ---   checkWF(P) == true
+  ---
+  --- Under the preceding well-formedness check:
+  ---
+  ---   gNonEmpty follows from selfOdd,
+  ---   gFuture follows from checkWF, and
+  ---   oddFuture follows from checkWF together with zConsistent.
+  ---
+  --- Therefore only the following three predicates are
+  --- independently checked here:
+  ---
+  ---   gNonInput
+  ---   selfOdd
+  ---   zConsistent
+  ---
+  --- The derived predicates are retained as auxiliary operators
+  --- for diagnostics and audit tests, but they are no longer part
+  --- of the production acceptance condition.
+  ------------------------------------------------------------
+
+  ceq checkGVertex(N, P)
+    = true
+    if isMeasured(N, P) == false .
+
+  ceq checkGVertex(N, P) = gNonInput?(N, P)
+                        and selfOdd?(N, P)
+                        and zConsistent?(N, P)
+                        if isMeasured(N, P) == true .
+
+  eq checkGVerts(nil, P) = true .
+
+  eq checkGVerts(N LN1, P) = checkGVertex(N, P)
+                          and checkGVerts(LN1, P) .
+
+  eq checkGflowRealized(P) = checkGVerts(measOrder(P), P) .
+
+endfm
+
+------------------------------------------------------------
+--- Fidelity and workflow-precondition checkers
+------------------------------------------------------------
+fmod MBQC-CHECKER is
+  pr MBQC-GFLOW-CHECK .
+  pr MBQC-PATTERN-WF-CHECKER .
+  pr MBQC-PUBLIC-INPUT-CHECKER .
+  pr RLCHECKER .
+  pr LIST{OutBranch} .
+  pr BOOL .
+
+  vars V1 V2 : Vect .
+  var  M     : Map{Nat,Bit} .
+  var  LN    : List{Nat} .
+  var  LOB   : List{OutBranch} .
+
+  var  N     : Nat .
+  var  B     : Bit .
+  var  SG SG1 SG2 : Signal .
+  var  LC    : List{Command} .
+  var  LPN   : List{PairN} .
+  var  A     : Ang .
+  var  V O   : List{Nat} .
+  var  In    : List{PairNV} .
+  var  C     : Command .
+
+  ------------------------------------------------------------
+  --- Fidelity-based checker
+  ------------------------------------------------------------
+  --- checkF(LOB, Spec) returns true iff LOB is nonempty and
+  --- every output branch in LOB has fidelity 1 with respect to Spec.
+  ---
+  --- checkFAll is the internal recursive checker.
+  ---
+  --- This checker relies on symbolic simplification of inner products.
+  --- Case-specific algebraic assumptions, such as
+  ---   sqrt(16) = 4
+  ---   a a* + b b* = 1
+  --- should be placed in test/case-study modules, not here.
+  ------------------------------------------------------------
+
+  op checkF    : List{OutBranch} Vect -> Bool .
+  op checkFAll : List{OutBranch} Vect -> Bool .
+
+  --- An empty output list is not a successful verification result.
+  eq checkF(nil, V2) = false .
+
+  --- Delegate a nonempty output list to the recursive checker.
+  eq checkF(< M, LN, V1 > LOB, V2) = checkFAll(< M, LN, V1 > LOB, V2) .
+
+  --- The empty suffix means that every preceding branch passed.
+  eq checkFAll(nil, V2) = true .
+
+  ceq checkFAll(< M, LN, V1 > LOB, V2) = checkFAll(LOB, V2)
+                                        if | < V1, V2 > |^2 == 1 .
+
+  ceq checkFAll(< M, LN, V1 > LOB, V2)  = false  
+                                          if | < V1, V2 > |^2 =/= 1 .
+  
+  ------------------------------------------------------------
+  --- Zero-constant-signal checker
+  ------------------------------------------------------------
+  --- sigConstZero checks whether the constant bit of a signal is zero.
+  ---
+  --- allConstZero checks whether every signal appearing in a pattern
+  --- has constant bit zero.
+  ---
+  --- This is a precondition for the SKIP version of runSingle:
+  --- on the all-zero measurement branch, every signal [zero, L]
+  --- evaluates to zero, so X/Z corrections are identities and can
+  --- be skipped.
+  ------------------------------------------------------------
+
+  op sigConstZero : Signal -> Bool .
+  op allConstZeroLC : List{Command} -> Bool .
+  op allConstZero : Pattern -> Bool .
+
+  eq sigConstZero([zero, LN]) = true .
+  ceq sigConstZero([B, LN]) = false if B =/= zero .
+
+  eq allConstZeroLC(nil) = true .
+  eq allConstZeroLC(E(LPN) LC) = allConstZeroLC(LC) .
+  eq allConstZeroLC(X(N, SG) LC) = sigConstZero(SG) and allConstZeroLC(LC) .
+  eq allConstZeroLC(Z(N, SG) LC) = sigConstZero(SG) and allConstZeroLC(LC) .
+  eq allConstZeroLC(M(N, A, SG1, SG2) LC) = sigConstZero(SG1) and sigConstZero(SG2) and allConstZeroLC(LC) .
+
+  --- S commands should not remain after successful signal shifting,
+  --- but we include this case so that allConstZero can also inspect
+  --- intermediate terms.
+  eq allConstZeroLC(S(N, SG) LC) = sigConstZero(SG) and allConstZeroLC(LC) .
+  --- Fallback for unexpected command constructors.
+  eq allConstZeroLC(C LC) = allConstZeroLC(LC) [owise] .
+  
+  eq allConstZero(< V, In, O, LC >) = allConstZeroLC(LC) .
+
+endfm

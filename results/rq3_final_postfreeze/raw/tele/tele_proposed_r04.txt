@@ -1,0 +1,19 @@
+		     \||||||||||||||||||/
+		   --- Welcome to Maude ---
+		     /||||||||||||||||||\
+	     Maude 3.5 built: Sep 25 2024 12:00:00
+	     Copyright 1997-2024 SRI International
+		   Sat Aug  8 18:43:31 2026
+==========================================
+reduce in RQ3-CORE : forcePattern(RQ3TeleP) .
+rewrites: 79 in 0ms cpu (0ms real) (~ rewrites/second)
+result Probe: done
+==========================================
+reduce in RQ3-CORE : forceVect(RQ3TeleSpec) .
+rewrites: 4 in 0ms cpu (0ms real) (~ rewrites/second)
+result Probe: done
+==========================================
+reduce in RQ3-CORE : proposedCost(RQ3TeleP, RQ3TeleSpec) .
+rewrites: 4924 in 4ms cpu (2ms real) (1231000 rewrites/second)
+result Verdict: pass
+Bye.

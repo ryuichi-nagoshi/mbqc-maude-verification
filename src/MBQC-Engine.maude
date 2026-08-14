@@ -1,0 +1,434 @@
+load data_view.maude
+
+fmod MBQC-NE is
+    pr MBQC-PATTERN .  --- Branch, Vect, Map{Nat,Bit} 等が入る
+    pr QC .            --- CZ, size(Vect) 等
+    pr BOOL .
+
+    var M N I J X : Nat .
+    var LN LN1 LN2 : List{Nat} .
+    var S : Map{Nat, Bit} .
+    var LPN : List{PairN} .
+    var LPNV : List{PairNV} .
+    var V : Vect .
+    
+    
+    op sub : Nat Nat -> Nat .   ---subtraction
+    --- |+> and n-fold tensor |+>^{⊗n}
+    op errV : -> Vect [ctor] .
+    op |+>   : -> Vect .
+    op plusN : Nat -> Vect .
+    op unitV : -> Vect [ctor] .
+
+    op E : Nat List{PairN} Branch -> Branch .
+
+
+    eq |+> = (1 ./ sqrt(2)) . (|0> + |1>) .
+    eq unitV (x) V = V .
+    eq V (x) unitV = V .
+
+    eq V (x) errV = errV .
+    eq errV (x) V = errV .
+    eq size(errV) = 0 .
+    
+    eq plusN(0) = unitV .
+    eq plusN(s(N)) = |+> (x) plusN(N) . --- N - 1だと multiple distinct parses for statementの警告が出るため，NATモジュールのs_: successorを使用．
+
+    --- Nat "subtraction
+    eq sub(N, 0) = N .
+    eq sub(0, M) = 0 .
+    eq sub(s(N), s(M)) = sub(N, M) .
+
+    --- Interval check using inputのqubitの番号が連番になっているか？
+    op isInterval : List{Nat} -> Bool .
+    --- length 0 or 1
+    eq isInterval(nil) = true .
+    eq isInterval(N) = true .
+    --- length 2>=
+    ceq isInterval(N M LN) = isInterval(M LN) if (s(N) == M) .
+    ceq isInterval(N M LN) = false if (s(N) =/= M) .
+
+    ------------------------------------------------------------
+    --- Well-formed input blocks (nonempty IL enforced by pattern)要は埋め込み検査機
+    ---　(1)qubitIDは連番か？(2)埋め込みする場所が最大量子ビット数内か？(3)埋め込みしようとしているVのサイズが埋め込み先のqubit数と一致しているか？
+    op wfBlocksFrom : Nat Nat List{PairNV} -> Bool .
+
+    eq wfBlocksFrom(N, M, nil) = true .
+    eq wfBlocksFrom(N, M, < nil @ V > LPNV) = false .
+    ceq wfBlocksFrom(N, M, < (X LN) @ V > LPNV) = wfBlocksFrom(N, s(last(X LN)), LPNV) if isInterval(X LN) /\ not(head(X LN) < M) /\ last(X LN) < N /\ (size(V) == size(X LN)) . 
+    eq wfBlocksFrom(N, M, < (X LN) @ V > LPNV) = false [owise] .
+
+    ------------------------------------------------------------
+    --- Build initial state by scanning positions P = 0..N-1
+    op buildInit : Nat Nat List{PairNV} -> Vect .
+
+    eq buildInit(N, N, nil) = unitV .
+    ceq buildInit(N, M, nil) = errV if M > N .
+    ceq buildInit(N, M, nil) = |+> (x) buildInit(N, s(M), nil) if M < N .
+
+    ceq buildInit(N, M, < (X LN) @ V > LPNV) = errV if M == N .
+    ceq buildInit(N, M, < (X LN) @ V > LPNV) = |+> (x) buildInit(N, s(M), < (X LN) @ V > LPNV) if M < head(X LN) .
+    ceq buildInit(N, M, < (X LN) @ V > LPNV) = V (x) buildInit(N, s(last(X LN)), LPNV) if M == X .
+
+    --- Ninit: initial branch with embedded inputs
+    op Ninit : List{Nat} List{PairNV} -> Branch . --- V,Iを基にして初期状態生成
+
+    eq Ninit(LN, nil) = < empty, buildInit(size(LN), 0, nil) > .
+    ceq Ninit(LN, < LN1 @ V > LPNV) = < empty, buildInit(size(LN), 0,  < LN1 @ V > LPNV) > if wfBlocksFrom(size(LN), 0,  < LN1 @ V > LPNV) == true .
+    ceq Ninit(LN, < LN1 @ V > LPNV) = < empty, errV > if wfBlocksFrom(size(LN), 0,  < LN1 @ V > LPNV) == false .
+
+    --- E: apply CZ on positions (I,J) to the quantum state in the branch
+    eq E(N, nil, < S, V >) = < S, V > .
+    ceq E(N, < I,J > LPN, < S, V >) = E(N, LPN, < S, (CZ(I, J) x V) >) if size(V) == N /\ I < N /\ J < N .
+    ceq E(N, < I,J > LPN, < S, V >) = < S, errV > if size(V) =/= N or I >= N or J >= N .
+
+endfm
+
+fmod MBQC-MEAS is
+    pr MBQC-NE .
+
+    ---angles
+    sort Ang .
+    ops '0pi 'pi/4 'pi/2 'pi '-pi/4 '-pi/2 '-pi : -> Ang [ctor] . ---クォートは衝突回避用
+
+    var A : Ang .
+
+     
+    --- negate angle (mod 2pi) : only what we need for X-dependency flip
+    op neg : Ang -> Ang .
+    eq neg('0pi) = '0pi .
+    eq neg('pi) = 'pi .
+    eq neg('-pi) = 'pi .
+    eq neg('pi/4) = '-pi/4 .
+    eq neg('-pi/4) = 'pi/4 .
+    eq neg('pi/2) = '-pi/2 .
+    eq neg('-pi/2) = 'pi/2 .
+
+    ---e^{i alpha} for the restricted angles
+    op phase : Ang -> Cpx .
+
+    eq phase('0pi) = 1 .
+    eq phase('pi) = -1 .
+    eq phase('-pi) = -1 .
+    eq phase('pi/2) = (1 i) .
+    eq phase('-pi/2) = (-1 i) .
+    eq phase('pi/4) = 1 ./ sqrt(2) .* (1 .+ (1 i)) .
+    eq phase('-pi/4) = (phase('pi/4))^* .
+
+    op effAng : Ang Bit -> Ang .
+    eq effAng(A, zero) = A .
+    eq effAng(A, one)  = neg(A) .
+
+    ---projectors P+ and P- as 1-qubit matrices
+    op Proj+ : Ang -> Mat .
+    op Proj- : Ang -> Mat .
+
+    ---|+a><+a| = 1/2 ( |0><0| + e^{-ia}|0><1| + e^{ia}|1><0| + |1><1| )
+    eq Proj+(A) = (1 ./ 2) .( |0><0| + ((phase(A))^* . |0><1|) + ( phase(A)  . |1><0|) + |1><1| ) .
+    ---|-a><-a| = 1/2 ( |0><0| - e^{-ia}|0><1| - e^{ia}|1><0| + |1><1| )
+    eq Proj-(A) = (1 ./ 2) . ( |0><0| + ((-1) . ((phase(A))^* . |0><1|)) + ((-1) . ( phase(A)  . |1><0|)) + |1><1| ) .
+
+    --- apply measurement projector to qubit I (NO trace-out; keeps dimension stable)
+    ops meas0 meas1 : Nat Ang Vect -> Vect .
+
+    vars N Q : Nat .
+    var V : Vect .
+    var sgn : Bit .
+    var S : Map{Nat,Bit} .
+    var LB : List{Branch} .
+
+    ceq meas0(Q, A, V) = (I(Q) (x) Proj+(A) (x) I(size(V) + .-(Q + 1))) x V if Q < size(V) .
+    ceq meas1(Q, A, V) = (I(Q) (x) Proj-(A) (x) I(size(V) + .-(Q + 1))) x V if Q < size(V) .
+
+    op M : Nat Nat Ang Bit List{Branch} -> List{Branch} . ---V(max qubit, 1~),targetID(0~),Signal,Branch(< Map, Vect >)
+
+
+    eq M(N, Q, A, sgn, nil) = nil . 
+    ceq M(N, Q, A, sgn, < S, V > LB) = < insert(Q, zero, S), meas0(Q, effAng(A, sgn), V) > < insert(Q, one, S), meas1(Q, effAng(A, sgn), V) > M(N, Q, A, sgn, LB) if size(V) == N /\ Q < N .
+
+    --- Mzero is the measurement primitive used by runSingle.
+    ---
+    --- It does not skip measurement.  It keeps only the outcome-0
+    --- branch by applying the outcome-0 projector meas0 and recording
+    --- the measured bit as zero.
+    ---
+    --- This is used for representative-branch execution after the
+    --- workflow has checked the command form, zero-constant invariant,
+    --- and realized gflow condition.
+    op Mzero : Nat Nat Ang Bit List{Branch} -> List{Branch} .
+
+    eq Mzero(N, Q, A, sgn, nil) = nil .
+    ceq Mzero(N, Q, A, sgn, < S, V > LB) = < insert(Q, zero, S), meas0(Q, effAng(A, sgn), V) > Mzero(N, Q, A, sgn, LB) if size(V) == N /\ Q < N .
+
+endfm
+
+fmod MBQC-XZ is
+    pr MBQC-MEAS .
+
+    var N N1 N2 : Nat .
+    var B : Bit .
+    var V : Vect .
+    var S : Map{Nat,Bit} .
+    var LN : List{Nat} .
+    var LB : List{Branch} .
+
+
+    op getBit : List{Nat} Map{Nat,Bit} -> Bit .
+    op errB : -> Bit .
+
+    eq errB (+) B = errB .
+    eq B (+) errB = errB .
+
+    eq getBit(nil, S) = zero .
+    ceq getBit(N LN, S) = S[N] (+) getBit(LN, S) if S[N] == zero or S[N] == one .
+    ceq getBit(N LN, S) = errB if S[N] == undefined .
+
+    op X : Nat Nat Bit List{Nat} List{Branch} -> List{Branch} . ---Maxqubit, target, Measuredqubit-signal, 
+    op Z : Nat Nat Bit List{Nat} List{Branch} -> List{Branch} .
+
+    eq X(N, N1, B, LN, nil) = nil .
+    ceq X(N, N1, B, LN, < S, V > LB) = < S, V > X(N, N1, B, LN, LB) if size(V) == N /\ N1 < N /\ (getBit(LN, S) (+) B) == zero .
+    ceq X(N, N1, B, LN, < S, V > LB) = < S, (X(N1) x V) > X(N, N1, B, LN, LB) if size(V) == N /\ N1 < N /\ (getBit(LN, S) (+) B) == one .
+    ceq X(N, N1, B, LN, < S, V > LB) = < S, errV > X(N, N1, B, LN, LB) if size(V) == N /\ N1 < N /\ (getBit(LN, S) (+) B) == errB .
+
+    eq Z(N, N1, B, LN, nil) = nil .
+    ceq Z(N, N1, B, LN, < S, V > LB) = < S, V > Z(N, N1, B, LN, LB) if size(V) == N /\ N1 < N /\ (getBit(LN, S) (+) B) == zero .
+    ceq Z(N, N1, B, LN, < S, V > LB) = < S, (Z(N1) x V) > Z(N, N1, B, LN, LB) if size(V) == N /\ N1 < N /\ (getBit(LN, S) (+) B) == one .
+    ceq Z(N, N1, B, LN, < S, V > LB) = < S, errV > Z(N, N1, B, LN, LB) if size(V) == N /\ N1 < N /\ (getBit(LN, S) (+) B) == errB .
+
+endfm
+
+
+fmod MBQC-TRACEOUT is
+
+    pr MBQC-XZ .
+    pr OUTBRANCH .
+    pr LIST{OutBranch} .
+
+    vars V V1 V2 : Vect .
+    vars C : Cpx .
+    var  S : Map{Nat,Bit} .
+    vars N N1 N2 : Nat .
+    var  LB : List{Branch} .
+    vars LN LN1 LN2 : List{Nat} .
+    var  B  : Branch .
+    var K : Ket .
+
+    op eV : -> Vect .
+    --- Make eV behave as tensor identity and size-0 vector
+    eq size(eV) = 0 .
+    eq eV (x) V = V .
+    eq V (x) eV = V .
+    --- inner product on 0-qubit space
+    eq < eV, eV > = 1 .
+    eq < eV, O  > = 0 .
+    eq < O , eV > = 0 .
+
+    --- unmeasured qubit list U = { i | S[i] == undefined }, in ascending order
+    op unmeasured : Nat Map{Nat,Bit} -> List{Nat} .
+    op unmeasuredFrom : Nat Nat Map{Nat,Bit} -> List{Nat} . --- 全体量子ビットスタート(1基準),qubit(0),測定結果
+
+    eq unmeasured(N, S) = unmeasuredFrom(N, 0, S) .
+    ceq unmeasuredFrom(N, N1, S) = nil if N1 >= N .
+    ceq unmeasuredFrom(N, N1, S) = N1 unmeasuredFrom(N, N1 + 1, S) if N1 < N /\ S[N1] == undefined .
+    ceq unmeasuredFrom(N, N1, S) = unmeasuredFrom(N, N1 + 1, S) if N1 < N /\ S[N1] =/= undefined .
+
+    --- strip measured qubits by contracting with <0| on measured positions
+    --- (keep only computational-bit 0 on measured qubits, then delete measured positions)
+    op stripMeasured : Map{Nat,Bit} Vect -> Vect .
+    op stripFrom     : Nat Map{Nat,Bit} Vect -> Vect .
+
+    eq stripMeasured(S, V) = stripFrom(0, S, V) .
+
+    eq stripFrom(N, S, O) = O .
+    eq stripFrom(N, S, errV) = errV .
+    eq stripFrom(N, S, V1 + V2) = stripFrom(N, S, V1) + stripFrom(N, S, V2) .
+    eq stripFrom(N, S, C . V) = C . stripFrom(N, S, V) .
+    
+    --- 1-qubit ket cases
+    --- measured: keep only |0>, and delete it (-> eV); |1> is discarded (-> O)
+    --- unmeasured: keep the ket as-is
+    ceq stripFrom(N, S, |0>) = eV  if S[N] =/= undefined .
+    ceq stripFrom(N, S, |1>) = O   if S[N] =/= undefined .
+    ceq stripFrom(N, S, |0>) = |0> if S[N] == undefined .
+    ceq stripFrom(N, S, |1>) = |1> if S[N] == undefined .
+
+    --- tensor peel (unique because left factor is Ket)
+    eq stripFrom(N, S, K (x) V) = stripFrom(N, S, K) (x) stripFrom(N + 1, S, V) .
+
+        ------------------------------------------------------------
+    --- Reorder output tensor factors
+    ------------------------------------------------------------
+    --- reorderOutput(U, O, V) changes only the representation order
+    --- of the tensor factors in V.
+    ---
+    --- U:
+    ---   Current tensor-factor order after stripMeasured.
+    ---   This is the ascending order of unmeasured physical qubit IDs.
+    ---
+    --- O:
+    ---   Desired output order specified by the Pattern.
+    ---   For compiled patterns, this is the logical-wire order.
+    ---
+    --- This is not a quantum-gate application and does not use SWAP.
+    ------------------------------------------------------------
+
+    --- List membership
+    op containsNat : Nat List{Nat} -> Bool .
+
+    eq containsNat(N, nil) = false .
+    eq containsNat(N, N LN) = true .
+    ceq containsNat(N, N1 LN) = containsNat(N, LN)
+      if N =/= N1 .
+
+    --- Check whether every element of the first list occurs
+    --- in the second list.
+    op allNatIn : List{Nat} List{Nat} -> Bool .
+
+    eq allNatIn(nil, LN2) = true .
+    eq allNatIn(N LN1, LN2)
+      = containsNat(N, LN2) and allNatIn(LN1, LN2) .
+
+    --- Duplicate check
+    op noDupNat : List{Nat} -> Bool .
+
+    eq noDupNat(nil) = true .
+    eq noDupNat(N LN)
+      = not(containsNat(N, LN)) and noDupNat(LN) .
+
+    --- U and O must represent the same qubits without duplication.
+    op validOutputOrder : List{Nat} List{Nat} -> Bool .
+
+    eq validOutputOrder(LN1, LN2)
+      = (size(LN1) == size(LN2))
+        and noDupNat(LN1)
+        and noDupNat(LN2)
+        and allNatIn(LN1, LN2)
+        and allNatIn(LN2, LN1) .
+
+    --- Position of a qubit ID in the current tensor-factor order
+    op posNat     : Nat List{Nat} -> Nat .
+    op posNatFrom : Nat List{Nat} Nat -> Nat .
+
+    eq posNat(N, LN) = posNatFrom(N, LN, 0) .
+
+    eq posNatFrom(N, nil, N1) = errNat .
+    eq posNatFrom(N, N LN, N1) = N1 .
+    ceq posNatFrom(N, N2 LN, N1)
+      = posNatFrom(N, LN, s(N1))
+      if N =/= N2 .
+
+    --- Extract one Ket from a computational-basis tensor term.
+    op ketAt : Nat Vect -> Vect .
+
+    eq ketAt(0, K) = K .
+    eq ketAt(0, K (x) V) = K .
+    eq ketAt(s(N), K) = errV .
+    eq ketAt(s(N), K (x) V) = ketAt(N, V) .
+    eq ketAt(N, O) = errV .
+    eq ketAt(N, errV) = errV .
+
+    --- Rebuild one computational-basis tensor term in output order.
+    op reorderBasis : List{Nat} List{Nat} Vect -> Vect .
+
+    eq reorderBasis(LN1, nil, V) = eV .
+
+    ceq reorderBasis(LN1, N LN2, V)
+      = ketAt(posNat(N, LN1), V)
+        (x) reorderBasis(LN1, LN2, V)
+      if posNat(N, LN1) =/= errNat .
+
+    ceq reorderBasis(LN1, N LN2, V)
+      = errV
+      if posNat(N, LN1) == errNat .
+
+    --- Extend the permutation linearly to arbitrary state vectors.
+    op reorderOutputRaw : List{Nat} List{Nat} Vect -> Vect .
+
+    eq reorderOutputRaw(nil, nil, eV) = eV .
+    eq reorderOutputRaw(LN1, LN2, O) = O .
+    eq reorderOutputRaw(LN1, LN2, errV) = errV .
+
+    eq reorderOutputRaw(LN1, LN2, V1 + V2)
+      = reorderOutputRaw(LN1, LN2, V1)
+        + reorderOutputRaw(LN1, LN2, V2) .
+
+    eq reorderOutputRaw(LN1, LN2, C . V)
+      = C . reorderOutputRaw(LN1, LN2, V) .
+
+    eq reorderOutputRaw(LN1, LN2, K)
+      = reorderBasis(LN1, LN2, K) .
+
+    eq reorderOutputRaw(LN1, LN2, K (x) V)
+      = reorderBasis(LN1, LN2, K (x) V) .
+
+    eq reorderOutputRaw(LN1, LN2, V)
+      = errV
+      [owise] .
+
+    --- Public entry point
+    op reorderOutput : List{Nat} List{Nat} Vect -> Vect .
+
+    ceq reorderOutput(LN1, LN2, V)
+      = reorderOutputRaw(LN1, LN2, V)
+      if validOutputOrder(LN1, LN2)
+         /\ size(V) == size(LN1) .
+
+    eq reorderOutput(LN1, LN2, V)
+      = errV
+      [owise] .
+
+    --- normalization (symbolic coefficients are kept as-is)
+    op invNorm   : Vect -> Real .
+    op normalize : Vect -> Vect .
+
+    eq normalize(errV) = errV .
+    eq normalize(O) = errV .
+    eq invNorm(V) = 1 ./ sqrt(| < V, V > |) .
+    ceq normalize(V) = (invNorm(V)) . V if V =/= O /\ V =/= errV .
+
+
+        ------------------------------------------------------------
+    --- traceOut for one branch / list of branches
+    ------------------------------------------------------------
+    --- The second argument is the desired logical output order O.
+    ------------------------------------------------------------
+
+    op traceOut     : Nat List{Nat} Branch -> OutBranch .
+    op traceOutWith : Nat List{Nat} List{Nat} Branch -> OutBranch .
+    op traceOutAll  : Nat List{Nat} List{Branch}
+                      -> List{OutBranch} .
+
+    eq traceOut(N, LN2, < S, V >)
+      = traceOutWith(
+          N,
+          LN2,
+          unmeasured(N, S),
+          < S, V >
+        ) .
+
+    ceq traceOutWith(N, LN2, LN1, < S, V >)
+      = < S,
+          LN2,
+          normalize(
+            reorderOutput(
+              LN1,
+              LN2,
+              stripMeasured(S, V)
+            )
+          )
+        >
+      if size(V) == N .
+
+    ceq traceOutWith(N, LN2, LN1, < S, V >)
+      = < S, LN2, errV >
+      if size(V) =/= N .
+
+    eq traceOutAll(N, LN2, nil) = nil .
+
+    eq traceOutAll(N, LN2, B LB)
+      = traceOut(N, LN2, B)
+        traceOutAll(N, LN2, LB) .
+
+endfm
+

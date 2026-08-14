@@ -1,0 +1,145 @@
+load ../src/workflow.maude
+
+fmod TEST-WORKFLOW-WF-INTEGRATION is
+  pr MBQC-WORKFLOW .
+
+  ops a b : -> Cpx .
+  op |psiWFWorkflow> : -> Vect .
+  var C : Cpx .
+
+  eq sqrt(16) = 4 .
+  eq sqrt(256) = 16 .
+  eq sqrt(4096) = 64 .
+  eq sqrt(16384) = 128 .
+  eq sqrt(65536) = 256 .
+
+  eq (a .* (a)^*) .+ (b .* (b)^*) = 1 .
+  eq (a .* (a)^*) .* C .+ (b .* (b)^*) .* C = C .* 1 .
+
+  eq |psiWFWorkflow> = a . |0> + b . |1> .
+
+  ------------------------------------------------------------
+  --- Patterns for guard-order regression tests
+  ------------------------------------------------------------
+
+  --- The measurement depends on the unavailable outcome s_1.
+  --- checkCMD may inspect its transformed shape, but checkWF must
+  --- reject it before any later workflow checker is evaluated.
+  op BadWFP : -> Pattern .
+  eq BadWFP =
+    < 0 1,
+      < 0 @ |0> >,
+      1,
+      M(0, '0pi, [zero, 1], [zero, nil])
+      E(< 0, 1 >)
+    > .
+
+  --- Well-formed but not in the transformed command form.
+  op NotStdPWFWorkflow : -> Pattern .
+  eq NotStdPWFWorkflow =
+    < 0 1 2,
+      < 0 @ |0> >,
+      2,
+      X(2, [zero, 1])
+      M(1, '0pi, [zero, nil], [zero, nil])
+      E(< 1, 2 >)
+      M(0, '0pi, [zero, nil], [zero, nil])
+      E(< 0, 1 >)
+    > .
+
+  --- Well-formed and command-valid, but with a nonzero signal
+  --- constant.
+  op BadConstPWFWorkflow : -> Pattern .
+  eq BadConstPWFWorkflow =
+    < 0,
+      < 0 @ |0> >,
+      0,
+      X(0, [one, nil])
+    > .
+
+  --- Well-formed and command-valid, but the realized correction
+  --- structure lacks the required Z correction.
+  op BadGflowPWFWorkflow : -> Pattern .
+  eq BadGflowPWFWorkflow =
+    std(
+      < 0 1 2,
+        < 0 @ |0> >,
+        2,
+        X(2, [zero, 1])
+        M(1, '0pi, [zero, nil], [zero, nil])
+        M(0, '0pi, [zero, nil], [zero, nil])
+        E(< 0, 1 > < 1, 2 >)
+      >
+    ) .
+
+endfm
+
+------------------------------------------------------------
+--- checkWF placement
+------------------------------------------------------------
+
+--- A valid compile result is checked successfully before std/sshift.
+--- Expected: true
+red checkWF(compile(
+  2,
+  J('0pi, 1) CZG(0, 1) J('0pi, 1),
+  < 0 @ |psiWFWorkflow> > < 1 @ |0> >
+)) .
+
+--- The public workflow still completes after the new guard.
+--- Expected: pass
+red verify(
+  2,
+  J('0pi, 1) CZG(0, 1) J('0pi, 1),
+  < 0 @ |psiWFWorkflow> > < 1 @ |0> >,
+  a . |0>(x)|0> + b . |1>(x)|1>
+) .
+
+--- A malformed hand-written transformed pattern is rejected first.
+--- Expected: false
+red checkWF(BadWFP) .
+
+--- Expected: error-wf
+red verifyP(BadWFP, |0>) .
+
+--- A malformed compile result is rejected before std/sshift.
+--- CZG(0,0) compiles to a self-entanglement command.
+--- Expected: error-wf
+red verify(1, CZG(0, 0), < 0 @ |0> >, |0>) .
+
+------------------------------------------------------------
+--- Existing guard-chain regression tests
+------------------------------------------------------------
+
+--- checkWF succeeds, then checkCMD rejects the untransformed shape.
+--- Expected: true
+red checkWF(NotStdPWFWorkflow) .
+
+--- Expected: error-checkCMD
+red verifyP(NotStdPWFWorkflow, |0>) .
+
+--- checkWF succeeds, then allConstZero rejects the constant one.
+--- Expected: true
+red checkWF(BadConstPWFWorkflow) .
+
+--- Expected: error-nonzero-const
+red verifyP(BadConstPWFWorkflow, |0>) .
+
+--- checkWF and the earlier transformed-pattern guards succeed,
+--- then the gflow checker rejects this pattern.
+--- Expected: true
+red checkWF(BadGflowPWFWorkflow) .
+
+--- Expected: error-gflow
+red verifyP(BadGflowPWFWorkflow, |0>) .
+
+--- All guards pass, but the specification state is different.
+--- Expected: fail
+red verify(
+  2,
+  J('0pi, 1) CZG(0, 1) J('0pi, 1),
+  < 0 @ |psiWFWorkflow> > < 1 @ |0> >,
+  |0>(x)|0>
+) .
+
+quit

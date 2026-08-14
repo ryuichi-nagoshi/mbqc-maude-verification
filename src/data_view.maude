@@ -1,0 +1,133 @@
+load incmp_qc.maude
+
+---Maude の prelude/標準ADT（LIST/SET/MAP）の等式仕様を前提とする
+
+------------------------------
+--- NAT-SET
+fmod NAT-SET is 
+    pr SET{Nat} .
+endfm
+
+
+------------------------------
+--- BIT
+fmod BIT is
+    sort Bit .
+    ops one zero : -> Bit [ctor] .
+    op not : Bit -> Bit .
+    op _(+)_ : Bit Bit -> Bit [assoc comm] .
+
+    var B : Bit .
+    --- not
+    eq not(one) = zero .
+    eq not(zero) = one .
+
+    --- XOR (+) 
+    eq zero (+) B = B .
+    eq one (+) zero = one .
+    eq one (+) one = zero .
+
+endfm
+
+view Bit from TRIV to BIT is 
+    sort Elt to Bit .
+endv
+
+--- NAT-BIT-MAP  (Map{Nat,Bit})
+fmod NAT-BIT-MAP is --- result of measured qubits
+    pr NAT .
+    pr BIT .
+    pr MAP{Nat, Bit} . --- viewになったBitを使用．Natについてはpreludeであらかじめviewが用意されている．
+endfm
+
+------------------------------
+--- INPUT STATE
+fmod INPUT is
+    pr MAT .
+    pr LIST{Nat} .
+
+    sort PairNV . --- NatVect
+    op <_@_> : List{Nat} Vect -> PairNV [ctor] .  
+
+endfm
+
+view PairNV from TRIV to INPUT is
+    sort Elt to PairNV .
+endv
+
+  --- entanglement pair (positions, 0-based)
+fmod PAIRN is 
+    pr NAT .
+
+    sort PairN .
+    op <_,_> : Nat Nat -> PairN [ctor] .
+endfm
+
+view PairN from TRIV to PAIRN is
+    sort Elt to PairN .
+endv
+
+------------------------------
+--- BRANCH
+fmod BRANCH is --- Pair of measured results and Vect(quantum state)
+    pr QC .
+    pr NAT-BIT-MAP .
+
+    sort Branch .
+
+    op <_,_> : Map{Nat, Bit} Vect -> Branch [ctor] .
+
+endfm
+
+view Branch from TRIV to BRANCH is
+    sort Elt to Branch .
+endv
+
+fmod OUTBRANCH is 
+    pr BRANCH .
+    pr LIST{Nat} .
+
+    sort OutBranch .
+
+    op <_,_,_> :  Map{Nat, Bit} List{Nat} Vect -> OutBranch .
+
+endfm
+
+view OutBranch from TRIV to OUTBRANCH is
+    sort Elt to OutBranch .
+endv
+
+--- Command
+fmod COMMAND is
+    sort Command .
+endfm
+
+view Command from TRIV to COMMAND is  
+    sort Elt to Command .
+endv
+
+fmod SIGNAL is 
+    pr BIT .
+    pr LIST{Nat} .
+    sort Signal .
+
+    op [_,_] : Bit List{Nat} -> Signal .
+endfm
+
+--- PATTERN
+fmod MBQC-PATTERN is
+
+    pr INPUT .
+    pr LIST{Nat} .
+    pr LIST{Command} .
+    pr LIST{Branch} .
+    pr LIST{PairNV} .
+    pr LIST{PairN} .
+
+    sort Pattern .
+
+    op <_,_,_,_> : List{Nat} List{PairNV} List{Nat} List{Command} -> Pattern .
+
+
+endfm
+

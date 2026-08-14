@@ -1,0 +1,275 @@
+load ../../src/workflow.maude
+
+fmod TEST-CORE-VERIFY is
+  pr MBQC-WORKFLOW .
+
+  ------------------------------------------------------------
+  --- Common symbolic assumptions
+  ------------------------------------------------------------
+
+  ops a b : -> Cpx .
+  op |psi> : -> Vect .
+  var C : Cpx .
+
+  eq sqrt(16) = 4 .
+  eq sqrt(256) = 16 .
+  eq sqrt(4096) = 64 .
+  eq sqrt(16384) = 128 .
+  eq sqrt(65536) = 256 .
+  eq sqrt(1048576) = 1024 .
+  eq sqrt(4194304) = 2048 .
+  eq sqrt(16777216) = 4096 .
+  eq sqrt(67108864) = 8192 .
+  eq sqrt(268435456) = 16384 .
+  eq sqrt(1073741824) = 32768 .
+  eq sqrt(4294967296) = 65536 .
+
+  eq (a .* (a)^*) .+ (b .* (b)^*) = 1 .
+  eq (a .* (a)^*) .* C .+ (b .* (b)^*) .* C = C .* 1 .
+
+  eq |psi> = a . |0> + b . |1> .
+
+  ------------------------------------------------------------
+  --- Helpers for branch counting
+  ------------------------------------------------------------
+
+  var M : Map{Nat,Bit} .
+  vars N : Nat .
+  vars LN LN1 : List{Nat} .
+  var V : Vect .
+  var LOB : List{OutBranch} .
+  var P : Pattern .
+
+  op countOutBranches : List{OutBranch} -> Nat .
+  eq countOutBranches(nil) = 0 .
+  eq countOutBranches(< M, LN, V > LOB) = s(countOutBranches(LOB)) .
+
+    ------------------------------------------------------------
+  --- Helpers for selecting the all-zero output branch
+  ------------------------------------------------------------
+
+  --- Check whether every measured qubit in LN has outcome zero
+  --- in the measurement-result map M.
+  op allZeroOn : List{Nat} Map{Nat,Bit} -> Bool .
+
+  eq allZeroOn(nil, M) = true .
+
+  eq allZeroOn(N LN, M)
+    = (M[N] == zero) and allZeroOn(LN, M) .
+
+
+  --- Select output branches whose measurement outcomes are all zero.
+  ---
+  --- The first argument is the list of measured qubits.
+  op selectAllZero :
+    List{Nat} List{OutBranch} -> List{OutBranch} .
+
+  eq selectAllZero(LN, nil) = nil .
+
+  ceq selectAllZero(
+        LN,
+        < M, LN1, V > LOB
+      )
+    =
+      < M, LN1, V >
+      selectAllZero(LN, LOB)
+    if allZeroOn(LN, M) == true .
+
+  ceq selectAllZero(
+        LN,
+        < M, LN1, V > LOB
+      )
+    =
+      selectAllZero(LN, LOB)
+    if allZeroOn(LN, M) == false .
+
+
+  --- Direct correspondence check:
+  ---
+  --- runSingle(P) must be exactly the all-zero branch selected
+  --- from the complete execution run(P).
+  op runSingleMatchesZero : Pattern -> Bool .
+
+  eq runSingleMatchesZero(P)
+    =
+      (
+        runSingle(P)
+        ==
+        selectAllZero(measOrder(P), run(P))
+      ) .
+
+  ------------------------------------------------------------
+  --- Case 1: CNOT
+  ------------------------------------------------------------
+
+  op CNOTGates : -> List{Gate} .
+  eq CNOTGates =
+    J('0pi, 1)
+    CZG(0, 1)
+    J('0pi, 1)
+  .
+
+  op CNOTIn : -> List{PairNV} .
+  eq CNOTIn =
+    < 0 @ |psi> >
+    < 1 @ |0> >
+  .
+
+  op CNOTSpec : -> Vect .
+  eq CNOTSpec =
+    a . |0>(x)|0> + b . |1>(x)|1>
+  .
+
+  op CNOTP : -> Pattern .
+  eq CNOTP = wfPattern(2, CNOTGates, CNOTIn) .
+
+  op CNOTRunCheck : -> Bool .
+  eq CNOTRunCheck = checkF(run(CNOTP), CNOTSpec) .
+
+  op CNOTRunSingleCheck : -> Bool .
+  eq CNOTRunSingleCheck = checkF(runSingle(CNOTP), CNOTSpec) .
+
+  op CNOTVerify : -> Verdict .
+  eq CNOTVerify = verify(2, CNOTGates, CNOTIn, CNOTSpec) .
+
+  op CNOTBranches : -> Nat .
+  eq CNOTBranches = countOutBranches(run(CNOTP)) .
+
+
+  ------------------------------------------------------------
+  --- Case 2: 3-bit flip encoding
+  ------------------------------------------------------------
+
+  op BitFlip3Gates : -> List{Gate} .
+  eq BitFlip3Gates =
+    J('0pi, 1)
+    CZG(0, 1)
+    J('0pi, 1)
+
+    J('0pi, 2)
+    CZG(0, 2)
+    J('0pi, 2)
+  .
+
+  op BitFlip3In : -> List{PairNV} .
+  eq BitFlip3In =
+    < 0 @ |psi> >
+    < 1 @ |0> >
+    < 2 @ |0> >
+  .
+
+  op BitFlip3Spec : -> Vect .
+  eq BitFlip3Spec =
+    a . |0>(x)|0>(x)|0>
+    + b . |1>(x)|1>(x)|1>
+  .
+
+  op BitFlip3P : -> Pattern .
+  eq BitFlip3P = wfPattern(3, BitFlip3Gates, BitFlip3In) .
+
+  op BitFlip3RunCheck : -> Bool .
+  eq BitFlip3RunCheck = checkF(run(BitFlip3P), BitFlip3Spec) .
+
+  op BitFlip3RunSingleCheck : -> Bool .
+  eq BitFlip3RunSingleCheck = checkF(runSingle(BitFlip3P), BitFlip3Spec) .
+
+  op BitFlip3Verify : -> Verdict .
+  eq BitFlip3Verify = verify(3, BitFlip3Gates, BitFlip3In, BitFlip3Spec) .
+
+  op BitFlip3Branches : -> Nat .
+  eq BitFlip3Branches = countOutBranches(run(BitFlip3P)) .
+
+  ------------------------------------------------------------
+  --- Case 3: 5-qubit GHZ generation
+  ------------------------------------------------------------
+
+  op GHZ5Gates : -> List{Gate} .
+  eq GHZ5Gates =
+    CZG(0, 1)
+    J('0pi, 1)
+
+    CZG(1, 2)
+    J('0pi, 2)
+
+    CZG(2, 3)
+    J('0pi, 3)
+
+    CZG(3, 4)
+    J('0pi, 4)
+  .
+
+  op GHZ5In : -> List{PairNV} .
+  eq GHZ5In = nil .
+
+  op GHZ5Spec : -> Vect .
+  eq GHZ5Spec =
+    1 ./ sqrt(2) .
+      (|0>(x)|0>(x)|0>(x)|0>(x)|0>
+       + |1>(x)|1>(x)|1>(x)|1>(x)|1>)
+  .
+
+  op GHZ5P : -> Pattern .
+  eq GHZ5P = wfPattern(5, GHZ5Gates, GHZ5In) .
+
+  op GHZ5RunCheck : -> Bool .
+  eq GHZ5RunCheck = checkF(run(GHZ5P), GHZ5Spec) .
+
+  op GHZ5RunSingleCheck : -> Bool .
+  eq GHZ5RunSingleCheck = checkF(runSingle(GHZ5P), GHZ5Spec) .
+
+  op GHZ5Verify : -> Verdict .
+  eq GHZ5Verify = verify(5, GHZ5Gates, GHZ5In, GHZ5Spec) .
+
+  op GHZ5Branches : -> Nat .
+  eq GHZ5Branches = countOutBranches(run(GHZ5P)) .
+
+  ------------------------------------------------------------
+  --- Case 4: Teleportation via J(0); J(0)
+  ------------------------------------------------------------
+  --- This is the compile-generated teleportation-style identity.
+  --- Since J(0) = H, the circuit J(0); J(0) implements H . H = I.
+  --- The generated MBQC pattern realizes teleportation through two
+  --- measurement steps.
+
+  op TeleGates : -> List{Gate} .
+  eq TeleGates =
+    J('0pi, 0)
+    J('0pi, 0)
+  .
+
+  op TeleIn : -> List{PairNV} .
+  eq TeleIn =
+    < 0 @ |psi> >
+  .
+
+  op TeleSpec : -> Vect .
+  eq TeleSpec = |psi> .
+
+  op TeleP : -> Pattern .
+  eq TeleP = wfPattern(1, TeleGates, TeleIn) .
+
+  op TeleRunCheck : -> Bool .
+  eq TeleRunCheck = checkF(run(TeleP), TeleSpec) .
+
+  op TeleRunSingleCheck : -> Bool .
+  eq TeleRunSingleCheck = checkF(runSingle(TeleP), TeleSpec) .
+
+  op TeleVerify : -> Verdict .
+  eq TeleVerify = verify(1, TeleGates, TeleIn, TeleSpec) .
+
+  op TeleBranches : -> Nat .
+  eq TeleBranches = countOutBranches(run(TeleP)) .
+
+  ------------------------------------------------------------
+  --- Transformed-pattern WF guard test
+  ------------------------------------------------------------
+
+  op InvalidTransformedP : -> Pattern .
+
+  eq InvalidTransformedP =
+    < nil, nil, nil, nil >
+  .
+
+
+endfm
+

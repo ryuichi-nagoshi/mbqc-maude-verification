@@ -1,0 +1,204 @@
+load checker.maude
+
+fmod MBQC-WORKFLOW is
+  pr COMPILE-WIRE .
+  pr MBQC-CHECKER .
+  pr BOOL .
+
+  var N : Nat .
+  var LG : List{Gate} .
+  var LNV : List{PairNV} .
+  var Spec : Vect .
+  var P : Pattern .
+
+  ------------------------------------------------------------
+  --- Verification verdicts
+  ------------------------------------------------------------
+  --- pass:
+  ---   The workflow succeeds and checkF returns true.
+  ---
+  --- fail:
+  ---   The workflow succeeds up to execution, but checkF returns false.
+  ---
+  --- error-circuit:
+  ---   The public circuit input is invalid.  This includes zero initial
+  ---   wires, an out-of-range gate target, or a self-CZ gate.
+  ---
+  --- error-input:
+  ---   The public input-state assignment is invalid for the specified
+  ---   initial wire count.
+  ---
+  --- error-wf:
+  ---   The pattern does not satisfy Measurement Calculus
+  ---   well-formedness or the metadata assumptions of the execution
+  ---   layer.
+  ---
+  --- error-checkCMD:
+  ---   The transformed pattern does not satisfy the command-level
+  ---   assumptions required by the execution layer.
+  ---
+  --- error-nonzero-const:
+  ---   Some signal has a nonzero constant bit. In this case the SKIP
+  ---   version of runSingle is not sound, because X/Z corrections may
+  ---   be nontrivial even on the all-zero branch.
+  ---
+  --- error-gflow:
+  ---   The realized correction structure does not pass the gflow checker.
+  ---   Therefore representative-branch execution is not justified.
+  ------------------------------------------------------------
+
+  sort Verdict .
+  ops pass fail error-circuit error-input error-wf error-checkCMD
+      error-nonzero-const error-gflow : -> Verdict [ctor] .
+
+  ------------------------------------------------------------
+  --- Workflow normalization
+  ------------------------------------------------------------
+  --- wfPattern(N, LG, LNV) is the standard workflow transformation:
+  ---
+  ---   compile -> std -> sshift
+  ---
+  --- This helper constructs the transformed pattern for inspection.
+  ---
+  --- Verification through verify checks well-formedness twice:
+  ---
+  ---   1. after compile, before std and sshift; and
+  ---   2. after std and sshift, before the remaining checkers.
+  ---
+  --- Both failures are reported as error-wf.
+  ------------------------------------------------------------
+
+  op wfPattern : Nat List{Gate} List{PairNV} -> Pattern .
+
+  eq wfPattern(N, LG, LNV) = sshift(std(compile(N, LG, LNV))) .
+
+
+  ------------------------------------------------------------
+  --- Verification entry points
+  --- verify(N, LG, LNV, Spec):
+  ---   Full workflow from a {J(alpha), CZG} circuit to verification.
+  ---   checkCircuit and checkInput are applied before compile.
+  ---
+  ---   checkWF is applied:
+  ---     1. to the compile result before transformation; and
+  ---     2. to the transformed pattern after std and sshift.
+  ---
+  --- verifyP(P, Spec):
+  ---   Verification of an already transformed pattern.
+  ---   checkWF is applied to P before the command-level checkers.
+  ------------------------------------------------------------
+
+  op verify : Nat List{Gate} List{PairNV} Vect -> Verdict .
+  op verifyP : Pattern Vect -> Verdict .
+
+  --- Public-input guards before compilation.
+  op verifyStepCircuit : Bool Nat List{Gate} List{PairNV} Vect -> Verdict .
+  op verifyStepInput : Bool Nat List{Gate} List{PairNV} Vect -> Verdict .
+
+  --- Internal entry for a pattern produced by compile.
+  op verifyCompiledP : Pattern Vect -> Verdict .
+
+  eq verify(N, LG, LNV, Spec) = verifyStepCircuit(checkCircuit(N, LG), N, LG, LNV, Spec) .
+
+  eq verifyStepCircuit(false, N, LG, LNV, Spec) = error-circuit .
+  eq verifyStepCircuit(true, N, LG, LNV, Spec) = verifyStepInput(checkInput(N, LNV), N, LG, LNV, Spec) .
+
+  eq verifyStepInput(false, N, LG, LNV, Spec) = error-input .
+  eq verifyStepInput(true, N, LG, LNV, Spec) = verifyCompiledP(compile(N, LG, LNV), Spec) .
+
+  eq verifyCompiledP(P, Spec) = verifyStepCompiledWF(checkWF(P), P, Spec) .
+
+  eq verifyP(P, Spec) = verifyStepWF(checkWF(P), P, Spec) .
+
+
+  ------------------------------------------------------------
+  --- Verification logic
+  ------------------------------------------------------------
+  --- Public circuit workflow:
+  ---
+  ---   checkCircuit
+  ---   -> checkInput
+  ---   -> compile
+  ---   -> checkWF
+  ---   -> std
+  ---   -> sshift
+  ---   -> checkWF
+  ---   -> checkCMD
+  ---   -> allConstZero
+  ---   -> checkGflowRealized
+  ---   -> checkF(runSingle(...), Spec)
+  ---
+  --- Already-transformed Pattern workflow:
+  ---
+  ---   checkWF
+  ---   -> checkCMD
+  ---   -> allConstZero
+  ---   -> checkGflowRealized
+  ---   -> checkF(runSingle(...), Spec)
+  ---
+  --- Separate guard helpers ensure that each checker is evaluated once
+  --- at its intended workflow stage.
+  ---
+  --- checkWF is intentionally applied twice:
+  --- once before transformation and once after transformation.
+  ------------------------------------------------------------
+
+  op verifyStepCompiledWF    : Bool Pattern Vect -> Verdict .
+  op verifyAfterTransform    : Pattern Vect -> Verdict .
+  op verifyStepTransformedWF : Bool Pattern Vect -> Verdict .
+
+  op verifyStepWF            : Bool Pattern Vect -> Verdict .
+  op verifyAfterWF           : Pattern Vect -> Verdict .
+  op verifyStepCMD           : Bool Pattern Vect -> Verdict .
+  op verifyStepConst         : Bool Pattern Vect -> Verdict .
+  op verifyStepGflow         : Bool Pattern Vect -> Verdict .
+  op verifyStepF             : Bool -> Verdict .
+
+  ------------------------------------------------------------
+  --- Well-formedness checks
+  ------------------------------------------------------------
+
+  --- First check:
+  --- The pattern produced by compile must be well-formed before it is
+  --- passed to std and sshift.
+  eq verifyStepCompiledWF(false, P, Spec) = error-wf .
+
+  eq verifyStepCompiledWF(true, P, Spec) = verifyAfterTransform(sshift(std(P)), Spec) .
+
+
+  --- Second check:
+  --- The transformed pattern is checked again before checkCMD,
+  --- allConstZero, checkGflowRealized, and runSingle.
+  ---
+  --- verifyAfterTransform receives the already computed transformed
+  --- pattern, so std and sshift are not evaluated twice.
+  eq verifyAfterTransform(P, Spec)
+    = verifyStepTransformedWF(checkWF(P), P, Spec) .
+
+  eq verifyStepTransformedWF(false, P, Spec) = error-wf .
+
+  eq verifyStepTransformedWF(true, P, Spec)
+    = verifyAfterWF(P, Spec) .
+
+
+  --- verifyP receives an already transformed pattern, so only one
+  --- well-formedness check is required for this internal entry point.
+  eq verifyStepWF(false, P, Spec) = error-wf .
+
+  eq verifyStepWF(true, P, Spec) = verifyAfterWF(P, Spec) .
+
+  eq verifyAfterWF(P, Spec) = verifyStepCMD(checkCMD(P), P, Spec) .
+
+  eq verifyStepCMD(false, P, Spec) = error-checkCMD .
+  eq verifyStepCMD(true, P, Spec) = verifyStepConst(allConstZero(P), P, Spec) .
+
+  eq verifyStepConst(false, P, Spec) = error-nonzero-const .
+  eq verifyStepConst(true, P, Spec) = verifyStepGflow(checkGflowRealized(P), P, Spec) .
+
+  eq verifyStepGflow(false, P, Spec) = error-gflow .
+  eq verifyStepGflow(true, P, Spec) = verifyStepF(checkF(runSingle(P), Spec)) .
+
+  eq verifyStepF(false) = fail .
+  eq verifyStepF(true) = pass .
+
+endfm

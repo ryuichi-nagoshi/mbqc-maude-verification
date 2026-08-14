@@ -1,0 +1,157 @@
+load ../src/workflow.maude
+
+fmod TEST-GFLOW-EXTRACTION is
+  pr MBQC-WORKFLOW .
+
+  ------------------------------------------------------------
+  --- Pattern for realized X/Z dependency extraction
+  ------------------------------------------------------------
+  ---
+  --- Execution order:
+  ---   E
+  ---   M(0)
+  ---   M(1), whose s-signal depends on outcome 0
+  ---   Z(2), whose signal depends on outcome 0
+  ---   X(2), whose signal depends on outcome 1
+  ---
+  --- Therefore:
+  ---   g(0)       = {1}
+  ---   actualZ(0) = {2}
+  ---   g(1)       = {2}
+  ---   actualZ(1) = empty
+  ------------------------------------------------------------
+
+  op ExtractP : -> Pattern .
+
+  eq ExtractP =
+    < 0 1 2,
+      nil,
+      2,
+
+      X(2, [zero, 1])
+      Z(2, [zero, 0])
+
+      M(1, '0pi, [zero, 0], zeroS)
+      M(0, '0pi, zeroS, zeroS)
+
+      E(< 0,1 > < 1,2 >)
+    >
+  .
+
+
+  ------------------------------------------------------------
+  --- Duplicate X dependency
+  ------------------------------------------------------------
+  ---
+  --- X(1)^{s_0} X(1)^{s_0} = I,
+  --- so target 1 must disappear from g(0).
+  ------------------------------------------------------------
+
+  op DuplicateXP : -> Pattern .
+
+  eq DuplicateXP =
+    < 0 1,
+      nil,
+      1,
+
+      X(1, [zero, 0])
+      X(1, [zero, 0])
+
+      M(0, '0pi, zeroS, zeroS)
+
+      E(< 0,1 >)
+    >
+  .
+
+
+  ------------------------------------------------------------
+  --- Duplicate edge
+  ------------------------------------------------------------
+  ---
+  --- Two copies of the same CZ edge cancel modulo two.
+  ------------------------------------------------------------
+
+  op DuplicateEdgeP : -> Pattern .
+
+  eq DuplicateEdgeP =
+    < 0 1,
+      nil,
+      1,
+
+      M(0, '0pi, zeroS, zeroS)
+
+      E(< 0,1 > < 0,1 >)
+    >
+  .
+
+
+  ------------------------------------------------------------
+  --- Z-to-t absorption and signal shifting
+  ------------------------------------------------------------
+  ---
+  --- The Z correction on measured qubit 1 is first absorbed into
+  --- the t-signal of M(1). Signal shifting then removes the t-signal
+  --- and substitutes its dependency into the later X correction.
+  ------------------------------------------------------------
+
+  op ShiftRawP : -> Pattern .
+
+  eq ShiftRawP =
+    < 0 1 2,
+      nil,
+      2,
+
+      X(2, [zero, 1])
+
+      M(1, '0pi, zeroS, zeroS)
+      Z(1, [zero, 0])
+
+      M(0, '0pi, zeroS, zeroS)
+
+      E(< 0,1 > < 1,2 >)
+    >
+  .
+
+endfm
+
+red sigDom([zero, 3 1 3 2 1]) == 2 . ---expect true
+red hasDep(2, [zero, 3 1 3 2 1]) . ---expect true
+red hasDep(1, [zero, 3 1 3 2 1]) . ---expect false
+
+red sigDom([one, 0]) == 0 . ---expect true
+red sigConstZero([one, 0]) . ---expect false
+
+---all true?
+red checkWF(ExtractP) .
+red checkCMD(ExtractP) .
+red allConstZero(ExtractP) .
+red checkGflowRealized(ExtractP) .
+
+red gOf(0, ExtractP) == 1 .
+red actualZOf(0, ExtractP) == 2 .
+red expectedZOf(0, ExtractP) == 2 .
+
+red gOf(1, ExtractP) == 2 .
+red actualZOf(1, ExtractP) == nil .
+red expectedZOf(1, ExtractP) == nil .
+
+red checkWF(DuplicateXP) .
+red checkCMD(DuplicateXP) .
+red allConstZero(DuplicateXP) .
+
+red xTargetsLC(0, pCmds(DuplicateXP)) == 1 1 .
+red gOf(0, DuplicateXP) == nil .
+
+red edgesOf(DuplicateEdgeP) == < 0,1 > < 0,1 > .
+red nbrsOf(0, ogOf(DuplicateEdgeP)) == nil .
+red nbrsOf(1, ogOf(DuplicateEdgeP)) == nil .
+
+red actualZOf(0, std(ShiftRawP)) == 1 . ---expect: true
+red allTzero(std(ShiftRawP)) . ---expect: false
+
+---expect: true
+red allTzero(sshift(std(ShiftRawP))) . 
+red actualZOf(0, sshift(std(ShiftRawP))) == nil .
+red gOf(0, sshift(std(ShiftRawP))) == 2 .
+
+quit

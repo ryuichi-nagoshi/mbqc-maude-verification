@@ -1,0 +1,106 @@
+load ../src/workflow.maude
+
+fmod TEST-WORKFLOW-PUBLIC-VERDICTS is
+  pr MBQC-WORKFLOW .
+
+  op |eprWorkflow> : -> Vect .
+  eq |eprWorkflow>
+    = (1 ./ sqrt(2))
+      . ((|0> (x) |0>) + (|1> (x) |1>)) .
+
+  op Empty2SpecWorkflow : -> Vect .
+  eq Empty2SpecWorkflow = |+> (x) |+> .
+
+  op Partial3SpecWorkflow : -> Vect .
+  eq Partial3SpecWorkflow = |+> (x) |0> (x) |+> .
+
+  op EPR3SpecWorkflow : -> Vect .
+  eq EPR3SpecWorkflow = |+> (x) |eprWorkflow> .
+
+endfm
+
+------------------------------------------------------------
+--- error-circuit
+------------------------------------------------------------
+
+--- N = 0 is rejected before checkInput and compile.
+--- Expected: error-circuit
+red verify(0, nil, nil, |0>) .
+
+--- An out-of-range J target is rejected.
+--- Expected: error-circuit
+red verify(2, J('0pi, 2), nil, Empty2SpecWorkflow) .
+
+--- A self-CZ is rejected.
+--- Expected: error-circuit
+red verify(2, CZG(1, 1), nil, Empty2SpecWorkflow) .
+
+--- Both the circuit and input are invalid.  Circuit validation has
+--- priority, so input validation is not reached.
+--- Expected: error-circuit
+red verify(
+  2,
+  CZG(0, 0),
+  < 0 1 @ |0> >,
+  Empty2SpecWorkflow
+) .
+
+------------------------------------------------------------
+--- error-input
+------------------------------------------------------------
+
+--- Nonconsecutive wires in one input block are rejected.
+--- Expected: error-input
+red verify(
+  3,
+  nil,
+  < 0 2 @ |eprWorkflow> >,
+  Partial3SpecWorkflow
+) .
+
+--- Overlapping input blocks are rejected.
+--- Expected: error-input
+red verify(
+  3,
+  nil,
+  < 0 1 @ |eprWorkflow> > < 1 @ |0> >,
+  Partial3SpecWorkflow
+) .
+
+--- The state size does not match the input block size.
+--- Expected: error-input
+red verify(
+  3,
+  nil,
+  < 0 1 @ |0> >,
+  Partial3SpecWorkflow
+) .
+
+------------------------------------------------------------
+--- Accepted public inputs
+------------------------------------------------------------
+
+--- The empty circuit is the identity on two unspecified |+> wires.
+--- Expected: pass
+red verify(2, nil, nil, Empty2SpecWorkflow) .
+
+--- Partial input; unspecified wires are initialized to |+>.
+--- Expected: pass
+red verify(
+  3,
+  nil,
+  < 1 @ |0> >,
+  Partial3SpecWorkflow
+) .
+
+--- A two-qubit EPR input on one consecutive block is accepted.
+--- Wire 0 remains unspecified and is initialized to |+>.
+--- Expected: pass
+red verify(
+  3,
+  nil,
+  < 1 2 @ |eprWorkflow> >,
+  EPR3SpecWorkflow
+) .
+
+quit

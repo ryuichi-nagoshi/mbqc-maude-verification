@@ -1,0 +1,412 @@
+load rq_eval_common.maude
+
+fmod TEST-RQ1-INTEGRATED is
+  pr RQ-EVAL-COMMON .
+
+
+  ------------------------------------------------------------
+  --- RQ1 classification
+  ------------------------------------------------------------
+
+  sort RQ1Class RQ1Result .
+
+
+  --- Naive accepts, Full rejects, Proposed does not pass.
+  ---
+  --- This is the central assurance-gap case:
+  --- ungated fixed-branch execution misses a semantic fault,
+  --- while the proposed workflow prevents acceptance.
+  op unsafePrevented : -> RQ1Class [ctor] .
+
+
+  --- Naive and Full both reject.
+  ---
+  --- There is no fixed-branch assurance gap in this concrete
+  --- case, although Proposed may reject structurally or fail
+  --- at the final fidelity check.
+  op detectedWithoutGating : -> RQ1Class [ctor] .
+
+
+  --- Full accepts, but Proposed returns a structural error.
+  ---
+  --- This records conservatism of the supported fragment.
+  op conservativeReject : -> RQ1Class [ctor] .
+
+
+  --- Full and Proposed both accept.
+  ---
+  --- Used for positive baselines and separately identified
+  --- semantic-equivalence controls.
+  op acceptedAgreement : -> RQ1Class [ctor] .
+
+
+  --- Full rejects but Proposed passes.
+  ---
+  --- This is the critical outcome that must not occur among
+  --- the tested cases.
+  op criticalUnsound : -> RQ1Class [ctor] .
+
+
+  --- Full accepts but Proposed reaches final fail.
+  ---
+  --- This is not expected in the present evaluation set.
+  op unexpectedDisagreement : -> RQ1Class [ctor] .
+
+
+  ------------------------------------------------------------
+  --- Result
+  ---
+  --- Fields:
+  ---
+  ---   1. Naive acceptance
+  ---   2. Full acceptance
+  ---   3. Proposed verdict
+  ---   4. RQ1 classification
+  ------------------------------------------------------------
+
+  op r1R :
+    Bool Bool Verdict RQ1Class
+    -> RQ1Result [ctor] .
+
+
+  var N F B : Bool .
+  var Vrd : Verdict .
+  var P : Pattern .
+  var Spec : Vect .
+
+
+  ------------------------------------------------------------
+  --- Error-verdict helper
+  ------------------------------------------------------------
+
+  op isErrorVerdict : Verdict -> Bool .
+
+  eq isErrorVerdict(pass)                = false .
+  eq isErrorVerdict(fail)                = false .
+
+  eq isErrorVerdict(error-circuit)       = true .
+  eq isErrorVerdict(error-input)         = true .
+  eq isErrorVerdict(error-wf)            = true .
+  eq isErrorVerdict(error-checkCMD)      = true .
+  eq isErrorVerdict(error-nonzero-const) = true .
+  eq isErrorVerdict(error-gflow)         = true .
+
+
+  ------------------------------------------------------------
+  --- Classification from the three verification outcomes
+  ------------------------------------------------------------
+
+  op classifyRQ1 :
+    Bool Bool Verdict -> RQ1Class .
+
+
+  --- Critical case:
+  --- Full rejects but Proposed accepts.
+  eq classifyRQ1(true, false, pass)
+    = criticalUnsound .
+
+  eq classifyRQ1(false, false, pass)
+    = criticalUnsound .
+
+
+  --- Assurance gap prevented.
+  ceq classifyRQ1(true, false, Vrd)
+    = unsafePrevented
+    if Vrd =/= pass .
+
+
+  --- Fault is already visible to ungated fixed-branch execution.
+  ceq classifyRQ1(false, false, Vrd)
+    = detectedWithoutGating
+    if Vrd =/= pass .
+
+
+  --- Full and Proposed agree on acceptance.
+  eq classifyRQ1(B, true, pass)
+    = acceptedAgreement .
+
+
+  --- Full accepts but Proposed reaches final functional failure.
+  --- No current case is expected to have this result.
+  eq classifyRQ1(B, true, fail)
+    = unexpectedDisagreement .
+
+
+  --- Full accepts but a structural guard rejects.
+  ceq classifyRQ1(B, true, Vrd)
+    = conservativeReject
+    if isErrorVerdict(Vrd) == true .
+
+
+  ------------------------------------------------------------
+  --- Compact report
+  ------------------------------------------------------------
+
+  op rq1From :
+    Bool Bool Verdict -> RQ1Result .
+
+  eq rq1From(N, F, Vrd)
+    =
+      r1R(
+        N,
+        F,
+        Vrd,
+        classifyRQ1(N, F, Vrd)
+      ) .
+
+
+  op rq1Report :
+    Pattern Vect -> RQ1Result .
+
+  eq rq1Report(P, Spec)
+    =
+      rq1From(
+        naiveAccept(P, Spec),
+        fullAccept(P, Spec),
+        verifyP(P, Spec)
+      ) .
+
+
+  ------------------------------------------------------------
+  --- Explicit critical-outcome monitor
+  ---
+  --- true means:
+  ---
+  ---   Full rejects
+  ---   Proposed nevertheless passes
+  ---
+  --- All tested mutation cases are expected to return false.
+  ------------------------------------------------------------
+
+  op criticalUnsoundAccept? :
+    Pattern Vect -> Bool .
+
+  eq criticalUnsoundAccept?(P, Spec)
+    =
+      (fullAccept(P, Spec) == false)
+      and
+      (verifyP(P, Spec) == pass) .
+
+endfm
+
+
+--- ============================================================
+--- A. Positive baselines
+---
+--- Expected:
+---   r1R(true, true, pass, acceptedAgreement)
+--- ============================================================
+
+red rq1Report(
+  Tele0BaseP,
+  Tele0Spec
+) .
+
+red rq1Report(
+  TelePlusBaseP,
+  TelePlusSpec
+) .
+
+red rq1Report(
+  CNOTXBaseP,
+  CNOTXSpec
+) .
+
+red rq1Report(
+  CNOTZBaseP,
+  CNOTZSpec
+) .
+
+red rq1Report(
+  ZConstBaseP,
+  ZConstSpec
+) .
+
+red rq1Report(
+  AngleBaseP,
+  AngleSpec
+) .
+
+
+--- ============================================================
+--- B. Unsafe acceptance prevented
+---
+--- Expected general form:
+---
+---   Naive    = true
+---   Full     = false
+---   Proposed = structural error
+---
+---   class    = unsafePrevented
+--- ============================================================
+
+red rq1Report(
+  XDelP,
+  CNOTXSpec
+) .
+
+red rq1Report(
+  XTgtP,
+  CNOTXSpec
+) .
+
+red rq1Report(
+  XDepP,
+  CNOTXSpec
+) .
+
+red rq1Report(
+  ZDelP,
+  CNOTZSpec
+) .
+
+red rq1Report(
+  ZDepP,
+  CNOTZSpec
+) .
+
+red rq1Report(
+  ZConstMutP,
+  ZConstSpec
+) .
+
+
+--- ============================================================
+--- C. Detected without a fixed-branch assurance gap
+---
+--- Expected:
+---
+---   Naive = false
+---   Full  = false
+---
+--- Edge mutations are rejected by the gflow guard.
+--- The angle mutation reaches the final fidelity check.
+--- ============================================================
+
+red rq1Report(
+  EDelP,
+  Tele0Spec
+) .
+
+red rq1Report(
+  ETgtP,
+  Tele0Spec
+) .
+
+red rq1Report(
+  EAddNewP,
+  TelePlusSpec
+) .
+
+red rq1Report(
+  AngleMutP,
+  AngleSpec
+) .
+
+
+--- ============================================================
+--- D. Supported-fragment conservatism
+---
+--- Expected:
+---
+---   Naive = true
+---   Full  = true
+---   Proposed = structural error
+---
+--- These cases must not be reported as semantic failures of Full.
+--- ============================================================
+
+red rq1Report(
+  MSDelP,
+  CNOTXSpec
+) .
+
+red rq1Report(
+  MConstP,
+  Tele0Spec
+) .
+
+
+--- ============================================================
+--- E. Semantic-equivalence controls
+---
+--- These are not counted as faults.
+---
+--- Expected:
+---
+---   Naive    = true
+---   Full     = true
+---   Proposed = pass
+--- ============================================================
+
+red rq1Report(
+  MSDupParityP,
+  CNOTXSpec
+) .
+
+red rq1Report(
+  ETripleParityP,
+  Tele0Spec
+) .
+
+
+--- ============================================================
+--- F. Explicit check for critical unsound acceptance
+---
+--- Every result below must be false.
+---
+--- This is finite evaluation evidence only; it is not a proof
+--- that such an outcome is impossible for all patterns.
+--- ============================================================
+
+red criticalUnsoundAccept?(
+  XDelP,
+  CNOTXSpec
+) .
+
+red criticalUnsoundAccept?(
+  XTgtP,
+  CNOTXSpec
+) .
+
+red criticalUnsoundAccept?(
+  XDepP,
+  CNOTXSpec
+) .
+
+red criticalUnsoundAccept?(
+  ZDelP,
+  CNOTZSpec
+) .
+
+red criticalUnsoundAccept?(
+  ZDepP,
+  CNOTZSpec
+) .
+
+red criticalUnsoundAccept?(
+  ZConstMutP,
+  ZConstSpec
+) .
+
+red criticalUnsoundAccept?(
+  EDelP,
+  Tele0Spec
+) .
+
+red criticalUnsoundAccept?(
+  ETgtP,
+  Tele0Spec
+) .
+
+red criticalUnsoundAccept?(
+  EAddNewP,
+  TelePlusSpec
+) .
+
+red criticalUnsoundAccept?(
+  AngleMutP,
+  AngleSpec
+) .
+
+quit
