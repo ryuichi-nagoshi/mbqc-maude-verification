@@ -1,0 +1,13 @@
+# Locally generated reproduction outputs
+artifacts/
+
+# Temporary RQ3 driver files
+rq3_main_*.maude
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Editor / OS files
+.DS_Store
+*~
