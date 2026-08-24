@@ -1,0 +1,134 @@
+]633;E;echo "=== RQ2 post-audit reproduction ===";8084d245-45c8-4fd2-9a08-61ff4e36922a]633;C=== RQ2 post-audit reproduction ===
+commit: 5461010d56a1d224c98046fe78658735d31596ac
+date: 2026-08-24T17:24:55+09:00
+
+		     \||||||||||||||||||/
+		   --- Welcome to Maude ---
+		     /||||||||||||||||||\
+	     Maude 3.5 built: Sep 25 2024 12:00:00
+	     Copyright 1997-2024 SRI International
+		   Mon Aug 24 17:24:55 2026
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(Tele0BaseP, Tele0Spec) .
+rewrites: 3272 in 4ms cpu (1ms real) (818000 rewrites/second)
+result RQ2StageResult: stageR(pass, stagePass)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(WF1DuplicateVertexP, Tele0Spec)
+    .
+rewrites: 359 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-wf, stageWF)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(WF2InvalidOutputP, Tele0Spec) .
+rewrites: 342 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-wf, stageWF)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(WF3MissingMeasurementP,
+    Tele0Spec) .
+rewrites: 251 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-wf, stageWF)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(WF4UnavailableDependencyP,
+    Tele0Spec) .
+rewrites: 319 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-wf, stageWF)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(WF5PastCorrectionP, Tele0Spec) .
+rewrites: 331 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-wf, stageWF)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(WF6DuplicateInputP, Tele0Spec) .
+rewrites: 321 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-wf, stageWF)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(CMD1ResidualTP, Tele0Spec) .
+rewrites: 362 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-checkCMD, stageCMD)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(CMD2OrderP, Tele0Spec) .
+rewrites: 348 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-checkCMD, stageCMD)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : cmdDiag(CMD1ResidualTP) .
+rewrites: 391 in 0ms cpu (0ms real) (~ rewrites/second)
+result CMDStageDiag: cmdD(true, false, true, false)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : cmdDiag(CMD2OrderP) .
+rewrites: 373 in 0ms cpu (0ms real) (~ rewrites/second)
+result CMDStageDiag: cmdD(true, true, false, false)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(ZConstMutP, ZConstSpec) .
+rewrites: 305 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-nonzero-const, stageConst)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : constDiag(ZConstMutP) .
+rewrites: 291 in 0ms cpu (0ms real) (~ rewrites/second)
+result ConstStageDiag: constD(true, true, false)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(XDelP, CNOTXSpec) .
+rewrites: 1043 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-gflow, stageGflow)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(XTgtP, CNOTXSpec) .
+rewrites: 1252 in 4ms cpu (0ms real) (313000 rewrites/second)
+result RQ2StageResult: stageR(error-gflow, stageGflow)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(XDepP, CNOTXSpec) .
+rewrites: 1283 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-gflow, stageGflow)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(ZDelP, CNOTZSpec) .
+rewrites: 1252 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-gflow, stageGflow)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(ZDepP, CNOTZSpec) .
+rewrites: 1309 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-gflow, stageGflow)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(MSDelP, CNOTXSpec) .
+rewrites: 1122 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-gflow, stageGflow)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(EDelP, Tele0Spec) .
+rewrites: 901 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-gflow, stageGflow)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(ETgtP, Tele0Spec) .
+rewrites: 986 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-gflow, stageGflow)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(EAddNewP, TelePlusSpec) .
+rewrites: 1091 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-gflow, stageGflow)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : coreDiag(2, XDelP) .
+rewrites: 917 in 0ms cpu (0ms real) (~ rewrites/second)
+result CoreGflowDiag: coreD(true, nil, nil, nil, true, false, true, false)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : coreDiag(2, XTgtP) .
+rewrites: 1324 in 0ms cpu (0ms real) (~ rewrites/second)
+result CoreGflowDiag: coreD(true, 0, nil, nil, false, true, true, false)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : coreDiag(1, XDepP) .
+rewrites: 1749 in 0ms cpu (0ms real) (~ rewrites/second)
+result CoreGflowDiag: coreD(true, 2 3, 0 3, 0 2 3, true, true, false, false)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(AngleMutP, AngleSpec) .
+rewrites: 1393 in 0ms cpu (1ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(fail, stageFidelity)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : fidelityDiag(AngleBaseP, AngleSpec) .
+rewrites: 4277 in 4ms cpu (2ms real) (1069250 rewrites/second)
+result FidelityStageDiag: fidelityD(true, true, true, true, true, true, pass)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : fidelityDiag(AngleMutP, AngleSpec) .
+rewrites: 4270 in 0ms cpu (2ms real) (~ rewrites/second)
+result FidelityStageDiag: fidelityD(true, true, true, true, false, false, fail)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : rq2StageReport(MConstP, Tele0Spec) .
+rewrites: 382 in 0ms cpu (0ms real) (~ rewrites/second)
+result RQ2StageResult: stageR(error-nonzero-const, stageConst)
+==========================================
+reduce in TEST-RQ2-INTEGRATED : constDiag(MConstP) .
+rewrites: 374 in 0ms cpu (0ms real) (~ rewrites/second)
+result ConstStageDiag: constD(true, true, false)
+Bye.
