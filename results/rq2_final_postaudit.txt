@@ -1,4 +1,4 @@
-]633;E;echo "=== RQ2 post-audit reproduction ===";8084d245-45c8-4fd2-9a08-61ff4e36922a]633;C=== RQ2 post-audit reproduction ===
+=== RQ2 post-audit reproduction ===
 commit: 5461010d56a1d224c98046fe78658735d31596ac
 date: 2026-08-24T17:24:55+09:00
 
