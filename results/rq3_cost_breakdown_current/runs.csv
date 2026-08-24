@@ -1,0 +1,15 @@
+workload,method,repetition,run_status,semantic_ok,result_value,rewrites,maude_cpu_ms,maude_real_ms,max_rss_kb,logical_outputs,pattern_qubits,measurements,expected_branches,git_sha,maude_version
+bitflip3,precheck,1,completed,True,true,3809,0.0,0.0,23680,3,7,4,16,5063619879fd672c7f8ae413fc46699313162a35,3.5
+bitflip3,single,1,completed,True,true,53596,48.0,48.0,25216,3,7,4,16,5063619879fd672c7f8ae413fc46699313162a35,3.5
+cnot,precheck,1,completed,True,true,1283,0.0,0.0,23680,2,4,2,4,5063619879fd672c7f8ae413fc46699313162a35,3.5
+cnot,single,1,completed,True,true,5862,4.0,4.0,23808,2,4,2,4,5063619879fd672c7f8ae413fc46699313162a35,3.5
+ghz3,precheck,1,completed,True,true,1497,0.0,0.0,23552,3,5,2,4,5063619879fd672c7f8ae413fc46699313162a35,3.5
+ghz3,single,1,completed,True,true,22734,20.0,21.0,24576,3,5,2,4,5063619879fd672c7f8ae413fc46699313162a35,3.5
+ghz4,precheck,1,completed,True,true,3303,0.0,0.0,23808,4,7,3,8,5063619879fd672c7f8ae413fc46699313162a35,3.5
+ghz4,single,1,completed,True,true,148844,320.0,320.0,29696,4,7,3,8,5063619879fd672c7f8ae413fc46699313162a35,3.5
+ghz5,precheck,1,completed,True,true,6261,0.0,1.0,23680,5,9,4,16,5063619879fd672c7f8ae413fc46699313162a35,3.5
+ghz5,single,1,completed,True,true,884328,17760.0,17869.0,82688,5,9,4,16,5063619879fd672c7f8ae413fc46699313162a35,3.5
+ghz6,precheck,1,completed,True,true,10747,4.0,1.0,23808,6,11,5,32,5063619879fd672c7f8ae413fc46699313162a35,3.5
+ghz6,single,1,completed,True,true,4920473,2308044.0,2312904.0,929548,6,11,5,32,5063619879fd672c7f8ae413fc46699313162a35,3.5
+tele,precheck,1,completed,True,true,995,0.0,0.0,23424,1,3,2,4,5063619879fd672c7f8ae413fc46699313162a35,3.5
+tele,single,1,completed,True,true,3933,4.0,2.0,23808,1,3,2,4,5063619879fd672c7f8ae413fc46699313162a35,3.5

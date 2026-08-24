@@ -1,0 +1,15 @@
+workload,method,attempts,completed,timeouts,other_failures,rewrite_consistent,median_rewrites,median_cpu_ms,median_real_ms,median_max_rss_kb,logical_outputs,pattern_qubits,measurements,expected_branches
+bitflip3,precheck,1,1,0,0,False,3809.0,0.0,0.0,23680.0,3,7,4,16
+bitflip3,single,1,1,0,0,False,53596.0,48.0,48.0,25216.0,3,7,4,16
+cnot,precheck,1,1,0,0,False,1283.0,0.0,0.0,23680.0,2,4,2,4
+cnot,single,1,1,0,0,False,5862.0,4.0,4.0,23808.0,2,4,2,4
+ghz3,precheck,1,1,0,0,False,1497.0,0.0,0.0,23552.0,3,5,2,4
+ghz3,single,1,1,0,0,False,22734.0,20.0,21.0,24576.0,3,5,2,4
+ghz4,precheck,1,1,0,0,False,3303.0,0.0,0.0,23808.0,4,7,3,8
+ghz4,single,1,1,0,0,False,148844.0,320.0,320.0,29696.0,4,7,3,8
+ghz5,precheck,1,1,0,0,False,6261.0,0.0,1.0,23680.0,5,9,4,16
+ghz5,single,1,1,0,0,False,884328.0,17760.0,17869.0,82688.0,5,9,4,16
+ghz6,precheck,1,1,0,0,False,10747.0,4.0,1.0,23808.0,6,11,5,32
+ghz6,single,1,1,0,0,False,4920473.0,2308044.0,2312904.0,929548.0,6,11,5,32
+tele,precheck,1,1,0,0,False,995.0,0.0,0.0,23424.0,1,3,2,4
+tele,single,1,1,0,0,False,3933.0,4.0,2.0,23808.0,1,3,2,4

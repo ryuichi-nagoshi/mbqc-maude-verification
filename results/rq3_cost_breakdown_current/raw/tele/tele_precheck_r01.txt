@@ -1,0 +1,15 @@
+		     \||||||||||||||||||/
+		   --- Welcome to Maude ---
+		     /||||||||||||||||||\
+	     Maude 3.5 built: Sep 25 2024 12:00:00
+	     Copyright 1997-2024 SRI International
+		   Mon Aug 24 18:09:51 2026
+==========================================
+reduce in RQ3-CORE : forcePattern(RQ3TeleP) .
+rewrites: 79 in 0ms cpu (0ms real) (~ rewrites/second)
+result Probe: done
+==========================================
+reduce in RQ3-CORE : precheckP(RQ3TeleP) .
+rewrites: 995 in 0ms cpu (0ms real) (~ rewrites/second)
+result Bool: true
+Bye.
