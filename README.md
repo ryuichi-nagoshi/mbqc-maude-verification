@@ -59,6 +59,11 @@ Saved final result:
 ```
 results/rq2_final.txt
 ```
+Post-audit reproduction on the current implementation:
+```
+results/rq2_final_postaudit.txt
+```
+
 ### RQ3
 
 RQ3 uses the following experiment drivers:
