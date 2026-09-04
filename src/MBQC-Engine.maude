@@ -358,7 +358,7 @@ fmod MBQC-TRACEOUT is
       = errV
       [owise] .
 
-    --- Normalize while leaving symbolic coefficients unsimplified.
+    --- Normalize symbolically without case-specific algebraic assumptions.
     op invNorm   : Vect -> Real .
     op normalize : Vect -> Vect .
 
