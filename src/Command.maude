@@ -11,8 +11,8 @@ fmod MBQC-LANG is
     var S : Map{Nat, Bit} .
     var V : Vect .
     var A : Ang .
-    var LN1 LN2 LN3 LN4 : List{Nat} .    ---V,O
-    var LNV : List{PairNV} . ---I
+    var LN1 LN2 LN3 LN4 : List{Nat} .
+    var LNV : List{PairNV} .
     var LPN : List{PairN} . 
     var LC : List{Command} .
     var C C1 C2 : Command .
@@ -21,17 +21,12 @@ fmod MBQC-LANG is
     var LBr : List{Branch} .
 
 
-        ------------------------------------------------------------
+    ------------------------------------------------------------
     --- Remove zero-probability branches
     ---
-    --- MALL formally generates both measurement outcomes.
-    --- An outcome with zero probability is represented by a
-    --- branch whose quantum state is the zero vector O.
-    ---
-    --- Such a branch is not an execution error and must not be
-    --- passed to final normalization, where normalize(O) = errV.
-    ---
-    --- Genuine errV branches are intentionally preserved.
+    --- MALL represents a zero-probability outcome by the zero
+    --- vector O. Such a branch is not an execution error and is
+    --- removed before further execution; errV branches are preserved.
     ------------------------------------------------------------
 
     op pruneZeroBranches : List{Branch} -> List{Branch} .
@@ -40,11 +35,10 @@ fmod MBQC-LANG is
     ceq pruneZeroBranches(< S, V > LBr) = < S, V > pruneZeroBranches(LBr)
                                             if V =/= O .
 
-    ---evaluation signal
     op evalSig : Signal Branch -> Bit . 
     eq evalSig([B, LN1], < S, V >) = B (+) getBit(LN1, S) .
 
-    ---M-ALL
+    --- Apply a measurement to every current branch, retaining both outcomes.
     op MALL : Nat Nat Ang Signal List{Branch} -> List{Branch} .
     eq MALL(N1, N2, A, Sgn, nil) = nil .
     ceq MALL(N1, N2, A, Sgn, < S, V > LBr) = M(N1, N2, A, evalSig(Sgn, < S, V >), < S, V > nil) 
@@ -56,7 +50,7 @@ fmod MBQC-LANG is
                                              MALL(N1, N2, A, Sgn, LBr) 
                                              if evalSig(Sgn, < S, V >) == errB .
 
-    --- M-Single(Single-branch)
+    --- Apply the outcome-zero measurement to every current branch.
     op MSingle : Nat Nat Ang Signal List{Branch} -> List{Branch} .
 
     eq MSingle(N1, N2, A, Sgn, nil) = nil .
@@ -72,115 +66,58 @@ fmod MBQC-LANG is
 
     ---Commands
     op E : List{PairN} -> Command .
-    op M : Nat Ang Signal Signal -> Command .  --- M(i,α,s,t) 完全形
+    op M : Nat Ang Signal Signal -> Command . 
     op X : Nat Signal -> Command .
     op Z : Nat Signal -> Command .
 
     op run : Pattern -> List{OutBranch} .
-    op runP : Pattern  List{Branch} -> List{OutBranch} . ---Nコマンド実行用
+    op runP : Pattern  List{Branch} -> List{OutBranch} .
 
-    ---N
+
     eq run(< LN1, LNV, LN2, LC >) = runP(< LN1, LNV, LN2, LC >, Ninit(LN1, LNV)) . 
-    ---E
+
     eq runP(< LN1, LNV, LN2, LC E(LPN) >, < S, V > nil ) = runP(< LN1, LNV, LN2, LC >, E(size(LN1), LPN, < S, V >)) . 
-    ---M
+
     ceq runP(< LN1, LNV, LN2, LC M(N, A, [B1, LN3], [B2, LN4]) >, LBr) = runP(< LN1, LNV, LN2, LC >, pruneZeroBranches( MALL(size(LN1), N, A, [B1, LN3], LBr)))
                                                                         if B2 == zero /\ LN4 == nil .
-    
-    ---X,Z
     eq runP(< LN1, LNV, LN2, LC X(N1, [B1, LN3]) >, LBr) = runP(< LN1, LNV, LN2, LC >, X(size(LN1), N1, B1, LN3, LBr)) .
     eq runP(< LN1, LNV, LN2, LC Z(N1, [B1, LN3]) >, LBr) = runP(< LN1, LNV, LN2, LC >, Z(size(LN1), N1, B1, LN3, LBr)) .
-    ---
+    
     eq runP(< LN1, LNV, LN2, nil >, LBr) = traceOutAll(size(LN1), LN2, LBr) .
 
-        ------------------------------------------------------------
-    --- Representative-branch execution for verified MBQC patterns
     ------------------------------------------------------------
-    --- runSingle is NOT a general execution semantics for arbitrary
-    --- MBQC patterns.
+    --- Fixed all-zero-branch execution
     ---
-    --- It is intended only for patterns accepted by the verification
-    --- workflow:
+    --- runSingle keeps only outcome zero at each measurement.
+    --- Measurement itself is not skipped: Mzero applies the
+    --- outcome-zero projector and records the zero outcome.
     ---
-    ---   compile -> std -> sshift
-    ---   -> checkCMD
-    ---   -> allConstZero
-    ---   -> checkGflowRealized
+    --- X/Z commands are skipped. Under allConstZero(P), every
+    --- correction signal [zero, L] evaluates to zero on the
+    --- all-zero branch, so these corrections are identities.
     ---
-    --- The intended input is therefore a pattern generated from a
-    --- {J(alpha), CZG} circuit and transformed by std and sshift.
-    ---
-    --- The SKIP version of runSingle fixes all measurement outcomes
-    --- to zero and keeps only the all-zero branch.  Measurements are
-    --- still executed: Mzero applies the outcome-0 projector and records
-    --- the measurement result zero.
-    ---
-    --- X/Z corrections are skipped in runSingle.  This is sound only
-    --- under the zero-constant invariant checked by allConstZero:
-    ---
-    ---   every signal has the form [zero, L].
-    ---
-    --- On the all-zero branch, every measurement outcome appearing in L
-    --- is zero.  Hence every correction signal evaluates to zero:
-    ---
-    ---   evalSig([zero, L], all-zero-branch) = zero.
-    ---
-    --- Therefore X/Z corrections are identities on this branch:
-    ---
-    ---   X^0 = I,  Z^0 = I.
-    ---
-    --- The additional checkGflowRealized precondition justifies using
-    --- this all-zero branch as a representative of all measurement
-    --- branches, by connecting the realized correction structure to
-    --- the gflow-based determinism theorem.
+    --- The verification workflow treats this execution as
+    --- representative only after checkWF, checkCMD, allConstZero,
+    --- and checkGflowRealized succeed. The realized-gflow check
+    --- supplies the structural determinism precondition used to
+    --- relate the all-zero branch to the other measurement branches.
     ------------------------------------------------------------
     
     op runSingle : Pattern -> List{OutBranch} .
     op runSingleB : Pattern List{Branch} -> List{OutBranch} .
 
-    ---N
     eq runSingle(< LN1, LNV, LN2, LC >) = runSingleB(< LN1, LNV, LN2, LC >, Ninit(LN1, LNV)) .
-    ---E
+
     eq runSingleB(< LN1, LNV, LN2, LC E(LPN) >, < S, V > nil ) = runSingleB(< LN1, LNV, LN2, LC >, E(size(LN1), LPN, < S, V >)) .
-    ---M
+    
     ceq runSingleB(< LN1, LNV, LN2, LC M(N, A, [B1, LN3], [B2, LN4]) >, LBr) = runSingleB(< LN1, LNV, LN2, LC >, MSingle(size(LN1), N, A, [B1, LN3], LBr))
                                                                              if B2 == zero /\ LN4 == nil . 
-    --- X / Z corrections are skipped intentionally.
-    ---
-    --- This is not valid for arbitrary patterns.  It is valid here only
-    --- because verifyP calls runSingle after:
-    ---
-    ---   checkCMD(P) == true
-    ---   allConstZero(P) == true
-    ---   checkGflowRealized(P) == true
-    ---
-    --- Under allConstZero and the all-zero measurement branch, every
-    --- X/Z correction signal evaluates to zero, so these corrections
-    --- are identities.
+    --- X/Z commands are skipped; this is sound for representative use
+    --- under the allConstZero precondition described above.
     
     eq runSingleB(< LN1, LNV, LN2, LC X(N1, Sgn) >, LBr) = runSingleB(< LN1, LNV, LN2, LC >, LBr) .
     eq runSingleB(< LN1, LNV, LN2, LC Z(N1, Sgn) >, LBr) = runSingleB(< LN1, LNV, LN2, LC >, LBr) .
 
-    ---finish
-        eq runSingleB(< LN1, LNV, LN2, nil >, LBr) = traceOutAll(size(LN1), LN2, LBr) .
+    eq runSingleB(< LN1, LNV, LN2, nil >, LBr) = traceOutAll(size(LN1), LN2, LBr) .
 
 endfm
-
-***(
----teleport
-red run(< 0 1 2, < 0 @ 1 ./ sqrt(2) . (|0> + |1>) >, 0,
-    X(2, [zero, 1])
-    Z(2, [zero, 0])
-    M(1, '0pi, [zero, nil], [zero, nil])
-    M(0, '0pi, [zero, nil], [zero, nil])
-    E(< 0,1 > < 1,2 >)
- >) .
-
-red run(< 0 1 2, < 0 @ 1 ./ sqrt(2) . (|0> + |1>) >, 0,
-    X(2, [zero, 1])
-    Z(2, [zero, 0])
-    M(1, '0pi, [zero, nil], [zero, nil])
-    M(0, 'pi/4, [zero, nil], [zero, nil])
-    E(< 0,1 > < 1,2 >)
- >) .
-***)
