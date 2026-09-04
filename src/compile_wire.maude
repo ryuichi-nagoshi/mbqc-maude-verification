@@ -1,8 +1,5 @@
 load standardize.maude
 
-------------------------------------------------------------
---- Ang list instantiation: LIST{Ang}
-------------------------------------------------------------
 view Ang from TRIV to MBQC-MEAS is
   sort Elt to Ang .
 endv
@@ -20,21 +17,19 @@ view Gate from TRIV to GATE is
     sort Elt to Gate .
 endv
 
-------------------------------------------------------------
---- Compiler (1-wire core)
-------------------------------------------------------------
+    ------------------------------------------------------------
+    --- Circuit-to-pattern compiler
+    ------------------------------------------------------------
 fmod COMPILE-WIRE is
     pr SIGNAL-SHIFTING .
     pr LIST{Gate} .
     pr MAP{Nat,Nat} .
     pr GATE .
 
-    sort CState . ---compile state
+    sort CState .
     
     op <_,_,_> : Map{Nat, Nat} Nat List{Command} -> CState .
-    ---<wires, current qubitID, next qubitID, V, LC >
-    ---op errNat : -> Nat .
-
+    
     vars W W1 W2 W3 N N1 N2 Next : Nat .
     var M : Map{Nat, Nat} .
     var A : Ang .
@@ -44,13 +39,11 @@ fmod COMPILE-WIRE is
     var LC : List{Command} .
     var LNV : List{PairNV} .
 
-    ---qubitID読み取り用
     op curOf : Nat Map{Nat, Nat} -> Nat .
     ceq curOf(W, M) = M[W] if M[W] =/= undefined .
     eq curOf(W, M) = errNat [owise] .
 
-    --- initCur(W): set cur[w]=w for w=0..W-1
-    ---N1 = wireID N2=input-qubitID
+    --- Initialize each logical wire to its initial qubit.
     op initCurFrom : Nat Nat -> Map{Nat, Nat} .
     ceq initCurFrom(N1, N2) = empty if N2 >= N1 .
     ceq initCurFrom(N1, N2) = insert(N2, N2, initCurFrom(N1, s(N2))) if N2 < N1 .
@@ -58,13 +51,11 @@ fmod COMPILE-WIRE is
     op initCur : Nat -> Map{Nat, Nat} .
     eq initCur(N) = initCurFrom(N, 0) .
 
-    ---build V 
     op range0 : Nat -> List{Nat} .
     eq range0(0) = nil .
     eq range0(s(N)) = range0(N) N .
 
-    ---build O(output)
-    ---outputs O = [cur[0], cur[1], ..., cur[W-1]]各キーの値が出力qubitIDとなる
+    --- Build O in logical-wire order: [cur[0], ..., cur[W-1]].
     op outsFrom : Nat Nat Map{Nat, Nat} -> List{Nat} .
     ceq outsFrom(N1, N2, M) = nil if N2 >= N1 .
     ceq outsFrom(N1, N2, M) = curOf(N2, M) outsFrom(N1, s(N2), M) if N2 < N1 .
@@ -73,13 +64,10 @@ fmod COMPILE-WIRE is
     op outs : Nat Map{Nat, Nat} -> List{Nat} .
     eq outs(N1, M) = outsFrom(N1, 0, M) .
 
-
-    ------------------------------------------------------------
-    --- init state: next = N, LC = nil
+    --- Initial state: current wire heads, next fresh qubit N, and no commands.
     op initSt : Nat -> CState .
-    eq initSt(N) = < initCur(N), N, nil > . ---make firtst CState 
+    eq initSt(N) = < initCur(N), N, nil > .
 
-    ------------------------------------------------------------
     op step : Gate CState -> CState .
 
     ceq step(J(A, N), < M, N1, LC >)
@@ -90,27 +78,23 @@ fmod COMPILE-WIRE is
             E(< curOf(N, M), N1 >)
             LC > if curOf(N, M) =/= errNat .
 
-    ---CZ between wires W1,W2: just entangle current frontier qubits
+    --- CZG entangles the current head qubits of the two logical wires.
     ceq step(CZG(N1, N2), < M, N, LC >)
     = < M, N,
         E(< curOf(N1, M), curOf(N2, M) >)
         LC > 
         if curOf(N1, M) =/= errNat /\ curOf(N2, M) =/= errNat .
 
-    -------------------------------------------------------------
-    ---comp: fold gate list left-to-right
+    --- Compile gates from left to right.
     op comp : List{Gate} CState -> CState .
 
     eq comp(nil, CS) = CS .
     eq comp(G LG, CS) = comp(LG, step(G, CS)) .
 
-    --- cache the compiled state to avoid recomputing in compile(...)
+    --- Cache the compiled state to avoid recomputation in compile(...).
     op st : Nat List{Gate} -> CState .
     eq st(N, LG) = comp(LG, initSt(N)) .
 
-    ------------------------------------------------------------
-    --- compile: Pattern = <V, In, O, LC>
-    ---wire, Gates, input, 
     op getM  : CState -> Map{Nat, Nat} .
     op nextN : CState -> Nat .
     op getLC : CState -> List{Command} .
@@ -118,7 +102,8 @@ fmod COMPILE-WIRE is
     eq getM(< M, N, LC >) = M .
     eq nextN(< M, N, LC >) = N .
     eq getLC(< M, N, LC >) = LC .
-
+    
+    --- Assemble <V, In, O, LC> from the compiled state.
     op compile : Nat List{Gate} List{PairNV} -> Pattern .
 
     eq compile(N, LG, LNV)
