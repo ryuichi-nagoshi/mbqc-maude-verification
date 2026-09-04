@@ -209,7 +209,7 @@ fmod RLCHECKER is
     var LC LC1 LC2 : List{Command} .
     var C C1 C2 : Command .
     var V O LN LN1 LN2 : List{Nat} .
-    var In : List{PairNV} . ---input
+    var In : List{PairNV} . 
     var LPN : List{PairN} .
     var N M N1 N2 N3 : Nat .
     var sg sg1 sg2 : Signal .
@@ -237,9 +237,6 @@ fmod RLCHECKER is
     ceq isPhase(C LC, N) = false if phase(C) > N or phase(C) == 4 .
     ceq isPhase(nil, N) = true if N =/= 4 .
 
-    ------------------------------------
-    ------------------------------------
-
     eq allTzero(< V, In, O, LC >) = checkT(LC) .
     eq allTzero(sshift(< V, In, O, LC >)) = checkT(LC) . 
 
@@ -260,31 +257,24 @@ fmod MBQC-GFLOW-BASIC is
     pr LIST{PairNV} .
     pr BOOL .
 
-    --- optional graph view
     sort OpenGraph .
     op <_,_,_,_> : List{Nat} List{Nat} List{Nat} List{PairN} -> OpenGraph [ctor] .
 
-    --- accessors
     op pVerts : Pattern -> List{Nat} .
     op pInputs : Pattern -> List{Nat} .
     op pOuts : Pattern -> List{Nat} .
     op pCmds : Pattern -> List{Command} .
 
-    --- input flattening
     op inQubits : List{PairNV} -> List{Nat} .
 
-    --- edge extraction 
     op edgesOf : Pattern -> List{PairN} .
     op edgesOfLC : List{Command} -> List{PairN} .
 
-    --- graph construction
     op ogOf : Pattern -> OpenGraph .
 
-    --- signal domain / dependency
     op sigDom : Signal -> List{Nat} .
     op hasDep : Nat Signal -> Bool .
 
-    --- variables
     var V O LN LN1 I0 O0 K : List{Nat} .
     var In : List{PairNV} .
     var LC : List{Command} .
@@ -300,128 +290,108 @@ fmod MBQC-GFLOW-BASIC is
     var G : OpenGraph .
     var Ptn : Pattern . 
 
-    --- pattern accessors
     eq pVerts(< V, In, O, LC >)  = V .
     eq pInputs(< V, In, O, LC >) = inQubits(In) .
     eq pOuts(< V, In, O, LC >) = O .
     eq pCmds(< V, In, O, LC >) = LC .
 
-    --- flatten input blocks
     eq inQubits(nil) = nil .
     eq inQubits(< LN @ VB > In ) = LN inQubits(In) .
 
-    --- extract edges from a pattern
     eq edgesOf(< V, In, O, LC >) = edgesOfLC(LC) .
 
     eq edgesOfLC(nil) = nil .
     eq edgesOfLC(E(LPN) LC) = LPN edgesOfLC(LC) .
     eq edgesOfLC(C LC) = edgesOfLC(LC) [owise] .
 
-    --- package as open graph
     eq ogOf(< V, In, O, LC >) = < V, inQubits(In), O, edgesOfLC(LC) > .
     
-    --- signal domain
     eq sigDom([B, LN]) = normLN(LN) .
 
-    --- dependency test
     eq hasDep(N, SG) = memN(N, sigDom(SG)) .
 
-    --- target extraction
     op xTargetsLC : Nat List{Command} -> List{Nat} .
     op zTargetsLC : Nat List{Command} -> List{Nat} .
 
-    --- parity normalization ande realized strategy
+    --- Realized correction structure extracted from signal dependencies.
     op parNorm : List{Nat} -> List{Nat} .
     op gOf : Nat Pattern -> List{Nat} .
     op actualZOf : Nat Pattern -> List{Nat} .
 
-    --- X-side raw targets of outcome s_N *rawは偶奇整列していない，集めただけのtargetの列
-    --- X(N1,SG) の signal に N が入っていれば，N1 を target に追加
-    --- M(N1,A,SG1,SG2) の SG1 に N が入っていれば，N1 を target に追加
-    --- それ以外は無視
+    --- Raw X-side targets whose signals depend on outcome s_N.
     eq xTargetsLC(N, nil) = nil .
     ceq xTargetsLC(N, X(N1, SG) LC) = N1 xTargetsLC(N, LC) if hasDep(N, SG) == true .
     ceq xTargetsLC(N, M(N1, A, SG1, SG2) LC) = N1 xTargetsLC(N, LC) if hasDep(N, SG1) == true .
     eq xTargetsLC(N, C LC) = xTargetsLC(N, LC) [owise] .
 
-    --- Z-side raw targets of outcome s_N
+    --- Raw Z-side targets whose signals depend on outcome s_N.
     eq zTargetsLC(N, nil) = nil .
     ceq zTargetsLC(N, Z(N1, SG) LC) = N1 zTargetsLC(N, LC) if hasDep(N, SG) == true .
     ceq zTargetsLC(N, M(N1, A, SG1, SG2) LC) = N1 zTargetsLC(N, LC) if hasDep(N, SG2) == true .
     eq zTargetsLC(N, C LC) = zTargetsLC(N, LC) [owise] .
 
-    --- parity normalization
     eq parNorm(LN) = normLN(LN) .
     
-    --- realized correcting set from X-side
+    --- Parity-normalized realized correcting set from X-side dependencies.
     eq gOf(N, < V, In, O, LC >) = parNorm(xTargetsLC(N, LC)) .
 
-    --- realized Z-side bihavior
+    --- Parity-normalized realized Z-side dependencies.
     eq actualZOf(N, < V, In, O, LC >) = parNorm(zTargetsLC(N, LC)) .
 
-    --- OpenGraph accessors
+    
     op gVerts  : OpenGraph -> List{Nat} .
     op gIns    : OpenGraph -> List{Nat} .
     op gOuts   : OpenGraph -> List{Nat} .
     op gEdges  : OpenGraph -> List{PairN} .
-    --- neighborhood
     op nbrsFrom : Nat List{PairN} -> List{Nat} .
     op nbrsOf   : Nat OpenGraph -> List{Nat} .
-    --- odd neighborhood
     op oddHit?  : Nat List{Nat} OpenGraph -> Bool .
     op oddOf    : List{Nat} OpenGraph -> List{Nat} .
     op oddOfAcc : List{Nat} List{Nat} OpenGraph -> List{Nat} .
-    --- helpers
     op removeNat : Nat List{Nat} -> List{Nat} .
-    --- expected Z-side behavior from graph
     op expectedZOf : Nat Pattern -> List{Nat} .
 
-    --- OpenGraph accessors
     eq gVerts(< V, I0, O0, Eds >) = V .
     eq gIns(< V, I0, O0, Eds >)   = I0 .
     eq gOuts(< V, I0, O0, Eds >)  = O0 .
     eq gEdges(< V, I0, O0, Eds >) = Eds .
 
-    --- raw neighbors of N from an edge list
     eq nbrsFrom(N, nil) = nil .
     eq nbrsFrom(N, < N, N1 > Eds) = N1 nbrsFrom(N, Eds) .
     eq nbrsFrom(N, < N1, N > Eds) = N1 nbrsFrom(N, Eds) .
     eq nbrsFrom(N, PN Eds) = nbrsFrom(N, Eds) [owise] .
 
-    --- normalized neighborhood in an open graph
+    --- Neighborhood normalized modulo duplicate-edge parity.
     eq nbrsOf(N, G) = parNorm(nbrsFrom(N, gEdges(G))) .
 
-    --- does vertex N belong to Odd(K) ?
+    --- Test whether N belongs to Odd(K).
     eq oddHit?(N, nil, G) = false .
     ceq oddHit?(N, N1 K, G) = not (oddHit?(N, K, G)) if memN(N1, nbrsOf(N, G)) == true .
     eq oddHit?(N, N1 K, G) = oddHit?(N, K, G) [owise] .
 
-        --- odd neighborhood of K in G
     eq oddOf(K, G) = oddOfAcc(gVerts(G), parNorm(K), G) .
     eq oddOfAcc(nil, K, G) = nil .
     ceq oddOfAcc(N V, K, G) = N oddOfAcc(V, K, G) if oddHit?(N, K, G) == true .
     eq oddOfAcc(N V, K, G) = oddOfAcc(V, K, G) [owise] .
 
-    --- remove a single vertex from a list
     eq removeNat(N, nil) = nil .
     ceq removeNat(N, N1 K) = removeNat(N, K) if N == N1 .
     ceq removeNat(N, N1 K) = N1 removeNat(N, K) if N =/= N1 .
 
-    --- expected Z-side behavior from gOf and graph structure
+    --- Expected Z-side targets: Odd(g(N)) \ {N}.
     eq expectedZOf(N, < V, In, O, LC >) = parNorm(removeNat(N, oddOf(gOf(N, < V, In, O, LC >), ogOf(< V, In, O, LC >)))) .
 
-    --- measurement order (execution order: earliest -> latest)
+    --- Measurement order in execution order: earliest -> latest.
     op measOrder : Pattern -> List{Nat} .
     op measOrderLC : List{Command} -> List{Nat} .
 
-    --- order / future checks
+   
     op isMeasured : Nat Pattern -> Bool .
     op beforeIn? : Nat Nat List{Nat} -> Bool .
     op before? : Nat Nat Pattern -> Bool .
     op futureOf? : Nat Nat Pattern -> Bool .
     op allFuture? : Nat List{Nat} Pattern -> Bool .
 
-     --- measurement order in actual execution order
     eq measOrder(< V, In, O, LC >) = measOrderLC(LC) .
 
     eq measOrderLC(nil) = nil .
