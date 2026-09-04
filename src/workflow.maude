@@ -13,38 +13,33 @@ fmod MBQC-WORKFLOW is
 
   ------------------------------------------------------------
   --- Verification verdicts
-  ------------------------------------------------------------
+  ---
   --- pass:
-  ---   The workflow succeeds and checkF returns true.
+  ---   All guards succeed and the fidelity check passes.
   ---
   --- fail:
-  ---   The workflow succeeds up to execution, but checkF returns false.
+  ---   All guards succeed, but the fidelity check fails.
   ---
   --- error-circuit:
-  ---   The public circuit input is invalid.  This includes zero initial
-  ---   wires, an out-of-range gate target, or a self-CZ gate.
+  ---   The public circuit input is invalid, e.g., N = 0, an
+  ---   out-of-range gate target, or a self-CZ gate.
   ---
   --- error-input:
-  ---   The public input-state assignment is invalid for the specified
-  ---   initial wire count.
+  ---   The public input-state assignment is invalid.
   ---
   --- error-wf:
-  ---   The pattern does not satisfy Measurement Calculus
-  ---   well-formedness or the metadata assumptions of the execution
-  ---   layer.
+  ---   A pattern fails well-formedness or metadata validation.
   ---
   --- error-checkCMD:
-  ---   The transformed pattern does not satisfy the command-level
-  ---   assumptions required by the execution layer.
+  ---   The transformed pattern violates command-level preconditions.
   ---
   --- error-nonzero-const:
-  ---   Some signal has a nonzero constant bit. In this case the SKIP
-  ---   version of runSingle is not sound, because X/Z corrections may
-  ---   be nontrivial even on the all-zero branch.
+  ---   Some signal has a nonzero constant bit, so X/Z corrections
+  ---   need not be identities on the all-zero branch.
   ---
   --- error-gflow:
-  ---   The realized correction structure does not pass the gflow checker.
-  ---   Therefore representative-branch execution is not justified.
+  ---   The realized correction structure fails the realized-gflow
+  ---   check, so representative-branch use is not justified.
   ------------------------------------------------------------
 
   sort Verdict .
@@ -52,20 +47,10 @@ fmod MBQC-WORKFLOW is
       error-nonzero-const error-gflow : -> Verdict [ctor] .
 
   ------------------------------------------------------------
-  --- Workflow normalization
-  ------------------------------------------------------------
-  --- wfPattern(N, LG, LNV) is the standard workflow transformation:
+  --- Workflow transformation
   ---
-  ---   compile -> std -> sshift
-  ---
-  --- This helper constructs the transformed pattern for inspection.
-  ---
-  --- Verification through verify checks well-formedness twice:
-  ---
-  ---   1. after compile, before std and sshift; and
-  ---   2. after std and sshift, before the remaining checkers.
-  ---
-  --- Both failures are reported as error-wf.
+  --- wfPattern returns the pattern obtained by
+  --- compile -> std -> sshift for inspection and testing.
   ------------------------------------------------------------
 
   op wfPattern : Nat List{Gate} List{PairNV} -> Pattern .
@@ -75,17 +60,10 @@ fmod MBQC-WORKFLOW is
 
   ------------------------------------------------------------
   --- Verification entry points
-  --- verify(N, LG, LNV, Spec):
-  ---   Full workflow from a {J(alpha), CZG} circuit to verification.
-  ---   checkCircuit and checkInput are applied before compile.
   ---
-  ---   checkWF is applied:
-  ---     1. to the compile result before transformation; and
-  ---     2. to the transformed pattern after std and sshift.
-  ---
-  --- verifyP(P, Spec):
-  ---   Verification of an already transformed pattern.
-  ---   checkWF is applied to P before the command-level checkers.
+  --- verify starts from a {J(alpha), CZG} circuit and validates
+  --- the public circuit and input before compilation.
+  --- verifyP starts from an already transformed pattern.
   ------------------------------------------------------------
 
   op verify : Nat List{Gate} List{PairNV} Vect -> Verdict .
@@ -113,8 +91,8 @@ fmod MBQC-WORKFLOW is
 
   ------------------------------------------------------------
   --- Verification logic
-  ------------------------------------------------------------
-  --- Public circuit workflow:
+  ---
+  --- Public workflow:
   ---
   ---   checkCircuit
   ---   -> checkInput
@@ -128,7 +106,7 @@ fmod MBQC-WORKFLOW is
   ---   -> checkGflowRealized
   ---   -> checkF(runSingle(...), Spec)
   ---
-  --- Already-transformed Pattern workflow:
+  --- Already-transformed-pattern workflow:
   ---
   ---   checkWF
   ---   -> checkCMD
@@ -136,11 +114,9 @@ fmod MBQC-WORKFLOW is
   ---   -> checkGflowRealized
   ---   -> checkF(runSingle(...), Spec)
   ---
-  --- Separate guard helpers ensure that each checker is evaluated once
-  --- at its intended workflow stage.
-  ---
-  --- checkWF is intentionally applied twice:
-  --- once before transformation and once after transformation.
+  --- Guard helpers evaluate each check at its intended stage.
+  --- The public workflow intentionally checks well-formedness both
+  --- before and after std/sshift.
   ------------------------------------------------------------
 
   op verifyStepCompiledWF    : Bool Pattern Vect -> Verdict .
@@ -158,20 +134,14 @@ fmod MBQC-WORKFLOW is
   --- Well-formedness checks
   ------------------------------------------------------------
 
-  --- First check:
-  --- The pattern produced by compile must be well-formed before it is
-  --- passed to std and sshift.
+  --- Check the compiled pattern before std/sshift.
   eq verifyStepCompiledWF(false, P, Spec) = error-wf .
 
   eq verifyStepCompiledWF(true, P, Spec) = verifyAfterTransform(sshift(std(P)), Spec) .
 
 
-  --- Second check:
-  --- The transformed pattern is checked again before checkCMD,
-  --- allConstZero, checkGflowRealized, and runSingle.
-  ---
-  --- verifyAfterTransform receives the already computed transformed
-  --- pattern, so std and sshift are not evaluated twice.
+  --- Recheck the transformed pattern; P is reused so std/sshift
+  --- are not evaluated twice.
   eq verifyAfterTransform(P, Spec)
     = verifyStepTransformedWF(checkWF(P), P, Spec) .
 
@@ -180,9 +150,6 @@ fmod MBQC-WORKFLOW is
   eq verifyStepTransformedWF(true, P, Spec)
     = verifyAfterWF(P, Spec) .
 
-
-  --- verifyP receives an already transformed pattern, so only one
-  --- well-formedness check is required for this internal entry point.
   eq verifyStepWF(false, P, Spec) = error-wf .
 
   eq verifyStepWF(true, P, Spec) = verifyAfterWF(P, Spec) .
