@@ -417,11 +417,9 @@ endfm
 fmod MBQC-GFLOW-CHECK is
   pr MBQC-GFLOW-BASIC .
 
-  --- helpers
   op disjoint? : List{Nat} List{Nat} -> Bool .
   op checkGVerts : List{Nat} Pattern -> Bool .
 
-  --- local checks
   op gNonEmpty?       : Nat Pattern -> Bool .
   op gNonInput?       : Nat Pattern -> Bool .
   op gFuture?         : Nat Pattern -> Bool .
@@ -429,7 +427,6 @@ fmod MBQC-GFLOW-CHECK is
   op oddFuture?       : Nat Pattern -> Bool .
   op zConsistent?     : Nat Pattern -> Bool .
 
-  --- global checks
   op checkGVertex     : Nat Pattern -> Bool .
   op checkGflowRealized : Pattern -> Bool .
 
@@ -437,52 +434,36 @@ fmod MBQC-GFLOW-CHECK is
   vars LN1 LN2 : List{Nat} .
   var P : Pattern .
 
-  --- LN1 と LN2 が共通要素を持たないか
   eq disjoint?(nil, LN2) = true .
   ceq disjoint?(N LN1, LN2) = false if memN(N, LN2) == true .
   ceq disjoint?(N LN1, LN2) = disjoint?(LN1, LN2) if memN(N, LN2) == false .
 
-  --- g(u) =/= empty
   ceq gNonEmpty?(N, P) = false if gOf(N, P) == nil .
   ceq gNonEmpty?(N, P) = true  if gOf(N, P) =/= nil .
 
-  --- g(u) \subset V \\ I を「input と交わらない」で見る
+  --- Check g(N) intersect I = empty.
   eq gNonInput?(N, P) = disjoint?(gOf(N, P), pInputs(P)) .
 
-  --- g(u) の各要素が u の future にあるか
+  --- Check that every vertex in g(N) is future of N.
   eq gFuture?(N, P) = allFuture?(N, gOf(N, P), P) .
 
-  --- u \in Odd(g(u))
+  --- Check N in Odd(g(N)).
   eq selfOdd?(N, P) = oddHit?(N, gOf(N, P), ogOf(P)) .
 
-  --- Odd(g(u)) \ {u} の各要素が u の future にあるか
+  --- Check that every vertex in Odd(g(N)) \ {N} is future of N.
   eq oddFuture?(N, P) = allFuture?(N, expectedZOf(N, P), P) .
 
-  --- pattern の Z-side と graph 由来 expected Z-side の一致
+  --- Match realized Z-side dependencies to Odd(g(N)) \ {N}.
   eq zConsistent?(N, P) = (actualZOf(N, P) == expectedZOf(N, P)) .
 
-    ------------------------------------------------------------
+  ------------------------------------------------------------
   --- Realized-gflow acceptance
   ---
-  --- Precondition:
-  ---   checkWF(P) == true
-  ---
-  --- Under the preceding well-formedness check:
-  ---
-  ---   gNonEmpty follows from selfOdd,
-  ---   gFuture follows from checkWF, and
-  ---   oddFuture follows from checkWF together with zConsistent.
-  ---
-  --- Therefore only the following three predicates are
-  --- independently checked here:
-  ---
-  ---   gNonInput
-  ---   selfOdd
-  ---   zConsistent
-  ---
-  --- The derived predicates are retained as auxiliary operators
-  --- for diagnostics and audit tests, but they are no longer part
-  --- of the production acceptance condition.
+  --- Under checkWF(P), selfOdd implies gNonEmpty, checkWF implies
+  --- gFuture, and checkWF together with zConsistent implies
+  --- oddFuture. Production acceptance therefore checks only
+  --- gNonInput, selfOdd, and zConsistent; the derived predicates
+  --- remain available for diagnostics and audit tests.
   ------------------------------------------------------------
 
   ceq checkGVertex(N, P)
