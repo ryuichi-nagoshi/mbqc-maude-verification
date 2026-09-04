@@ -91,7 +91,6 @@ fmod COMPILE-WIRE is
     eq comp(nil, CS) = CS .
     eq comp(G LG, CS) = comp(LG, step(G, CS)) .
 
-    --- Cache the compiled state to avoid recomputation in compile(...).
     op st : Nat List{Gate} -> CState .
     eq st(N, LG) = comp(LG, initSt(N)) .
 
