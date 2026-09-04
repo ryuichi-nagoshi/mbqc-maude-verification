@@ -62,9 +62,6 @@ fmod MBQC-LANG is
     ceq MSingle(N1, N2, A, Sgn, < S, V > LBr) = < S, errV >
                                                 MSingle(N1, N2, A, Sgn, LBr) 
                                                 if evalSig(Sgn, < S, V >) == errB .
-
-
-    ---Commands
     op E : List{PairN} -> Command .
     op M : Nat Ang Signal Signal -> Command . 
     op X : Nat Signal -> Command .
