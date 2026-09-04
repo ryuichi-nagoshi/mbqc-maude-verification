@@ -512,29 +512,21 @@ fmod MBQC-CHECKER is
 
   ------------------------------------------------------------
   --- Fidelity-based checker
-  ------------------------------------------------------------
-  --- checkF(LOB, Spec) returns true iff LOB is nonempty and
-  --- every output branch in LOB has fidelity 1 with respect to Spec.
   ---
-  --- checkFAll is the internal recursive checker.
-  ---
-  --- This checker relies on symbolic simplification of inner products.
-  --- Case-specific algebraic assumptions, such as
-  ---   sqrt(16) = 4
-  ---   a a* + b b* = 1
-  --- should be placed in test/case-study modules, not here.
+  --- checkF succeeds iff the output list is nonempty and every
+  --- branch has fidelity 1 with respect to Spec.
+  --- Fidelity evaluation relies on symbolic simplification; any
+  --- case-specific algebraic assumptions belong in the corresponding
+  --- test or evaluation module.
   ------------------------------------------------------------
 
   op checkF    : List{OutBranch} Vect -> Bool .
   op checkFAll : List{OutBranch} Vect -> Bool .
 
-  --- An empty output list is not a successful verification result.
   eq checkF(nil, V2) = false .
 
-  --- Delegate a nonempty output list to the recursive checker.
   eq checkF(< M, LN, V1 > LOB, V2) = checkFAll(< M, LN, V1 > LOB, V2) .
 
-  --- The empty suffix means that every preceding branch passed.
   eq checkFAll(nil, V2) = true .
 
   ceq checkFAll(< M, LN, V1 > LOB, V2) = checkFAll(LOB, V2)
@@ -545,16 +537,11 @@ fmod MBQC-CHECKER is
   
   ------------------------------------------------------------
   --- Zero-constant-signal checker
-  ------------------------------------------------------------
-  --- sigConstZero checks whether the constant bit of a signal is zero.
   ---
-  --- allConstZero checks whether every signal appearing in a pattern
-  --- has constant bit zero.
-  ---
-  --- This is a precondition for the SKIP version of runSingle:
-  --- on the all-zero measurement branch, every signal [zero, L]
-  --- evaluates to zero, so X/Z corrections are identities and can
-  --- be skipped.
+  --- allConstZero requires every signal in the pattern to have
+  --- constant bit zero. On the all-zero branch, each signal [zero, L]
+  --- therefore evaluates to zero, making X/Z corrections identities
+  --- in runSingle.
   ------------------------------------------------------------
 
   op sigConstZero : Signal -> Bool .
@@ -570,13 +557,9 @@ fmod MBQC-CHECKER is
   eq allConstZeroLC(Z(N, SG) LC) = sigConstZero(SG) and allConstZeroLC(LC) .
   eq allConstZeroLC(M(N, A, SG1, SG2) LC) = sigConstZero(SG1) and sigConstZero(SG2) and allConstZeroLC(LC) .
 
-  --- S commands should not remain after successful signal shifting,
-  --- but we include this case so that allConstZero can also inspect
-  --- intermediate terms.
+  --- S is handled so allConstZero can also inspect intermediate terms.
   eq allConstZeroLC(S(N, SG) LC) = sigConstZero(SG) and allConstZeroLC(LC) .
-  --- Fallback for unexpected command constructors.
   eq allConstZeroLC(C LC) = allConstZeroLC(LC) [owise] .
-  
   eq allConstZero(< V, In, O, LC >) = allConstZeroLC(LC) .
 
 endfm
