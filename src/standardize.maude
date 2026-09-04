@@ -95,6 +95,7 @@ fmod SIGNAL-SHIFTING is
     ceq memN(N, M LN) = true  if N == M .
     ceq memN(N, M LN) = memN(N, LN) if N =/= M .
 
+    --- Substitute s_i := t + s_i when outcome i occurs in a signal.
     op shSig : Signal Nat Signal -> Signal .
     ceq shSig([B, LN], N, sg) = splus([B, LN], sg) if memN(N, normLN(LN)) == true .
     ceq shSig([B, LN], N, sg) = [B, LN] if memN(N, normLN(LN)) == false .
