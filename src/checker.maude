@@ -2,16 +2,11 @@ load compile_wire.maude
 
 ------------------------------------------------------------
 --- Integrated checker modules
-------------------------------------------------------------
---- This file is the single load unit for all static and
---- semantic checkers used by MBQC-WORKFLOW.  Module
---- boundaries are preserved so each checker can still be
---- imported and tested independently.
+---
+--- Single load unit for the checkers used by MBQC-WORKFLOW;
+--- individual checker modules remain independently testable.
 ------------------------------------------------------------
 
-------------------------------------------------------------
---- Public circuit/input validation
-------------------------------------------------------------
 fmod MBQC-PUBLIC-INPUT-CHECKER is
   pr COMPILE-WIRE .
   pr BOOL .
@@ -23,10 +18,8 @@ fmod MBQC-PUBLIC-INPUT-CHECKER is
 
   ------------------------------------------------------------
   --- Circuit validation
-  ------------------------------------------------------------
-  --- The public workflow requires at least one initial wire.
-  --- For a positive wire count, the empty gate list is accepted
-  --- as the identity circuit.
+  ---
+  --- N must be positive; an empty gate list is accepted as the identity.
   ------------------------------------------------------------
 
   op checkCircuit : Nat List{Gate} -> Bool .
@@ -49,18 +42,11 @@ fmod MBQC-PUBLIC-INPUT-CHECKER is
 
   ------------------------------------------------------------
   --- Input-state validation
-  ------------------------------------------------------------
-  --- wfBlocksFrom checks that:
-  ---   * every block has a nonempty wire list;
-  ---   * wires inside a block form an ascending interval;
-  ---   * blocks are ordered and pairwise disjoint;
-  ---   * every wire is below the public wire count N; and
-  ---   * the state size equals the number of wires in the block.
   ---
-  --- Empty and partial inputs are accepted for N > 0.
-  --- Ninit initializes every unspecified wire to |+>.
-  --- A multi-qubit state, such as an EPR state, is accepted when
-  --- it is assigned to one consecutive wire block of matching size.
+  --- wfBlocksFrom requires nonempty consecutive wire blocks that
+  --- are ordered, disjoint, within N, and matched by state size.
+  --- Empty and partial inputs are allowed; unspecified wires are
+  --- initialized to |+>.
   ------------------------------------------------------------
 
   op checkInput : Nat List{PairNV} -> Bool .
@@ -90,15 +76,13 @@ fmod MBQC-PATTERN-WF-CHECKER is
   --- Pattern metadata
   ------------------------------------------------------------
 
-  --- Every vertex identifier must be below |V|.
   op allNatBelowWF : Nat List{Nat} -> Bool .
 
   eq allNatBelowWF(N, nil) = true .
   eq allNatBelowWF(N, N1 LN)
     = (N1 < N) and allNatBelowWF(N, LN) .
 
-  --- V is nonempty and represents {0, ..., |V|-1}.
-  --- Its list order is intentionally not fixed.
+  --- V must be a nonempty permutation of {0, ..., |V|-1}.
   op validVertsWF : List{Nat} -> Bool .
 
   eq validVertsWF(nil) = false .
@@ -106,14 +90,14 @@ fmod MBQC-PATTERN-WF-CHECKER is
     = noDupNat(N LN)
       and allNatBelowWF(size(N LN), N LN) .
 
-  --- Output order may encode logical-wire order, so O need not be
-  --- ascending.  It must nevertheless be a duplicate-free subset of V.
+  --- O may encode logical-wire order; require only a duplicate-free
+  --- subset of V, not ascending order.
   op validOutputsWF : List{Nat} List{Nat} -> Bool .
 
   eq validOutputsWF(O, V)
     = noDupNat(O) and allNatIn(O, V) .
 
-  --- V \ O, retaining the order in V.
+  --- V \ O in V order.
   op nonOutputsWF : List{Nat} List{Nat} -> List{Nat} .
 
   eq nonOutputsWF(nil, O) = nil .
@@ -122,7 +106,6 @@ fmod MBQC-PATTERN-WF-CHECKER is
   ceq nonOutputsWF(N V, O) = N nonOutputsWF(V, O)
     if containsNat(N, O) == false .
 
-  --- Set equality for duplicate-free Nat lists.
   op sameNatSetWF : List{Nat} List{Nat} -> Bool .
 
   eq sameNatSetWF(LN1, LN2) = validOutputOrder(LN1, LN2) .
@@ -131,11 +114,8 @@ fmod MBQC-PATTERN-WF-CHECKER is
   --- Signals and entanglement commands
   ------------------------------------------------------------
 
-  --- Dependencies are checked as written, without parity
-  --- normalization.  evalSig/getBit reads every listed outcome.
-  ---
-  --- zero and one are valid MC constant bits.  errB is an execution
-  --- error value and is not a valid signal constant.
+  --- Dependencies are checked as written, without parity normalization;
+  --- zero and one are valid constants, whereas errB is not.
   op depsReadyWF : Signal List{Nat} -> Bool .
 
   eq depsReadyWF([zero, LN], Measured) = allNatIn(LN, Measured) .
@@ -157,17 +137,14 @@ fmod MBQC-PATTERN-WF-CHECKER is
   --- Command-sequence scan
   ------------------------------------------------------------
 
-  op checkWFLC :
-    List{Command} List{Nat} List{Nat} List{Nat} -> Bool .
+  op checkWFLC : List{Command} List{Nat} List{Nat} List{Nat} -> Bool .
 
-  --- At completion, exactly the non-output qubits must have been
-  --- measured.  This also guarantees that output qubits remain
-  --- unmeasured and that every non-output is measured once.
+  --- At completion, exactly V \ O must have been measured.
   eq checkWFLC(nil, V, O, Measured)
     = sameNatSetWF(Measured, nonOutputsWF(V, O)) .
 
-  --- E may act only on distinct, existing, unmeasured qubits.
-  --- E(nil) is accepted, and repeated edges are intentionally allowed.
+  --- E acts only on distinct existing unmeasured qubits; repeated
+  --- edges are intentionally allowed.
   eq checkWFLC(LC E(LPN), V, O, Measured)
     = checkWFEdges(LPN, V, Measured)
       and checkWFLC(LC, V, O, Measured) .
@@ -196,11 +173,10 @@ fmod MBQC-PATTERN-WF-CHECKER is
       and depsReadyWF(SG, Measured)
       and checkWFLC(LC, V, O, Measured) .
 
-  --- S is an auxiliary signal-shifting command.  It is not valid in
-  --- a compiler output and must not remain after signal shifting.
+  --- S is rejected: it is neither valid compiler output nor permitted
+  --- after signal shifting.
   eq checkWFLC(LC S(N, SG), V, O, Measured) = false .
 
-  --- Keep the checker total if Command is extended in the future.
   eq checkWFLC(LC C, V, O, Measured) = false [owise] .
 
   ------------------------------------------------------------
