@@ -21,7 +21,7 @@ fmod REAL is
     --- absolute value
     op |_| : Real -> Real .
     op |_| : NzReal -> PosReal .
-    --- [todo] sqrt operator
+    
     op sqrt : PosReal -> PosReal .
 
     --- comparative operators
@@ -66,10 +66,10 @@ fmod REAL is
     *** sqrt properties
     eq sqrt(0) = 0 .
     eq sqrt(1) = 1 .
-    --- for positive rational numbers
+    --- Positive rational arguments
     eq sqrt(PRt / PRt') = sqrt(PRt) .* (1 ./ sqrt(PRt')) .
     eq sqrt(PRt) .* (Rt / PRt) = Rt .* (1 ./ sqrt(PRt)) .
-    --- for positive real numbers
+    --- Positive real arguments
     eq sqrt(PR) .* sqrt(PR) = PR .
     eq 1 ./ sqrt(PR) .* 1 ./ sqrt(PR) = 1 ./ PR .
     eq sqrt(PR .* PR') = sqrt(PR) .* sqrt(PR') .
@@ -109,9 +109,8 @@ fmod CPX is
     --- absolute square
     op |_|^2 : Cpx -> Real .
     op |_|^2 : NzCpx -> PosReal .
-    --- [todo] not support sqrt for complex numbers
+    --- General complex square-root simplification is not provided.
     op sqrt : NzImag -> Cpx .
-    --- eq sqrt(-1) = 1 i .
 
     vars Rt Rt1 Rt2 : Rat .
     vars R R1 R2 S : Real .
@@ -147,10 +146,10 @@ fmod CPX is
     eq C' .* (1 ./ C') = 1 .
 
     *** division properties
-    --- divide a non real number
+    --- Division by a real denominator.
     eq (S' i) ./ R'' = (S' ./ R'') i .
     eq (R' .+ (S' i)) ./ R'' = (R' ./ R'') .+ ((S' ./ R'') i) .
-    --- divide a complex number
+    --- Division by a complex denominator.
     eq A ./ (R' i) = A .* (((- 1) ./ R') i) .
     eq A ./ (R'' .+ (R' i)) = A .* ((R'' ./ |(R'' .+ (R' i))|^2) .+ (((.- R') ./ |(R'' .+ (R' i))|^2) i)) .
     --- [symbolic]
