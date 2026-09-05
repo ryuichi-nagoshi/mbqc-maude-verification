@@ -57,7 +57,7 @@ fmod REAL is
     eq | R1 .* R2 | = | R1 | .* | R2 | .
     eq | 1 ./ R' | = 1 ./ | R' | .
     
-    *** comparation for rational numbers
+    *** comparison for rational numbers
     eq Rt1 .< Rt2 = Rt1 < Rt2 .
     eq Rt1 .> Rt2 = Rt1 > Rt2 .
     eq Rt1 .<= Rt2 = Rt1 <= Rt2 .
