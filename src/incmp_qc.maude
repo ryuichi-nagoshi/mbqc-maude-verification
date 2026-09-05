@@ -250,8 +250,7 @@ fmod QC is
     --- quantum gates
     ops P0 P1 I X Y Z H S T : Nat -> Mat .
     ops CX CY CZ SWAP : Nat Nat -> Mat .
-    ops CCX CCZ CSWAP : Nat Nat Nat -> Mat .
-
+    
     --- single-qubit gates
     eq [P0] : P0(N) x V = (I(N) (x) |0><0| (x) I(size(V) - (N + 1))) x V .
     eq [P1] : P1(N) x V = (I(N) (x) |1><1| (x) I(size(V) - (N + 1))) x V .
