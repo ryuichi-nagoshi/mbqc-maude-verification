@@ -108,7 +108,7 @@ fmod RQ3-CORE is
   eq RQ3GHZ5Spec     = GHZ5Spec .
 
   ------------------------------------------------------------
-  --- Main comparison expressions
+  --- RQ3 cost expressions
   ------------------------------------------------------------
 
   op fullCost     : Pattern Vect -> Bool .

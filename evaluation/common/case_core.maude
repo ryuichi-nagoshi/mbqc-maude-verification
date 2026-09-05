@@ -87,7 +87,7 @@ fmod TEST-CORE-VERIFY is
   --- Direct correspondence check:
   ---
   --- runSingle(P) must be exactly the all-zero branch selected
-  --- from the complete execution run(P).
+  --- from the full-branch execution run(P).
   op runSingleMatchesZero : Pattern -> Bool .
 
   eq runSingleMatchesZero(P)
