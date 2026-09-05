@@ -110,17 +110,10 @@ results/rq3_final_postfreeze/manifest.txt
 ```
 The directory also contains the raw run outputs, per-run records, and timing records used to construct the final summaries.
 
-### RQ3 Diagnostic Measurements
+ ### RQ3 Diagnostic Measurements
 
-The one-run Precheck and Single+F diagnostic measurements discussed in
-the paper are stored under:
+ The one-run Precheck and Single+F diagnostic measurements discussed in the paper are stored under:
 
-Their results are summarized in `summary.csv`, with the corresponding
-raw outputs and per-run records retained in the same directory.
+`results/rq3_cost_breakdown_current/`
 
-Precheck and Single+F are recorded in `summary.csv` and the corresponding
-per-run records. Transform is the transformed-pattern warm-up
-(`forcePattern`) rewrite count recorded in each raw output file.
-
-The directory also contains the manifest and raw outputs used for these
-diagnostic measurements.
+Their results are summarized in `summary.csv`, with the corresponding raw outputs, per-run records, and experiment manifests retained in the same directory.
