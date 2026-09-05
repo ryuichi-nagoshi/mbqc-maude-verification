@@ -513,8 +513,8 @@ fmod MBQC-CHECKER is
   ------------------------------------------------------------
   --- Fidelity-based checker
   ---
-  --- checkF succeeds iff the output list is nonempty and every
-  --- branch has fidelity 1 with respect to Spec.
+  --- checkF succeeds iff the list of output branches is nonempty and
+  --- every branch has fidelity 1 with respect to Spec.
   --- Fidelity evaluation relies on symbolic simplification; any
   --- case-specific algebraic assumptions belong in the corresponding
   --- test or evaluation module.
