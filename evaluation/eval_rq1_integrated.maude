@@ -14,7 +14,7 @@ fmod TEST-RQ1-INTEGRATED is
   --- Naive accepts, Full rejects, Proposed does not pass.
   ---
   --- This is the central assurance-gap case:
-  --- ungated fixed-branch execution misses a semantic fault,
+  --- unguarded fixed-branch execution misses a semantic fault,
   --- while the proposed workflow prevents acceptance.
   op unsafePrevented : -> RQ1Class [ctor] .
 
@@ -115,7 +115,7 @@ fmod TEST-RQ1-INTEGRATED is
     if Vrd =/= pass .
 
 
-  --- Fault is already visible to ungated fixed-branch execution.
+  --- Fault is already visible to unguarded fixed-branch execution.
   ceq classifyRQ1(false, false, Vrd)
     = detectedWithoutGating
     if Vrd =/= pass .
@@ -279,7 +279,7 @@ red rq1Report(
 ---   Naive = false
 ---   Full  = false
 ---
---- Edge mutations are rejected by the gflow guard.
+--- Edge mutations are rejected by the realized-gflow guard.
 --- The angle mutation reaches the final fidelity check.
 --- ============================================================
 

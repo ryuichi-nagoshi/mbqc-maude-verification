@@ -11,7 +11,7 @@ fmod RQ-EVAL-COMMON is
   ------------------------------------------------------------
 
   --- Naive:
-  --- execute only the fixed all-zero branch without gating.
+  --- unguarded fixed-branch execution on the all-zero branch.
   op naiveAccept : Pattern Vect -> Bool .
 
   eq naiveAccept(P, Spec)
@@ -25,8 +25,8 @@ fmod RQ-EVAL-COMMON is
   --- Full:
   --- execute all physically surviving measurement branches.
   ---
-  --- The production full executor prunes zero-probability
-  --- branches immediately after measurement.
+  --- run prunes zero-probability branches immediately
+  --- after measurement.
   op fullAccept : Pattern Vect -> Bool .
 
   eq fullAccept(P, Spec)
