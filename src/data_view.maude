@@ -1,16 +1,10 @@
 load incmp_qc.maude
 
----Maude の prelude/標準ADT（LIST/SET/MAP）の等式仕様を前提とする
-
-------------------------------
---- NAT-SET
 fmod NAT-SET is 
     pr SET{Nat} .
 endfm
 
 
-------------------------------
---- BIT
 fmod BIT is
     sort Bit .
     ops one zero : -> Bit [ctor] .
@@ -18,11 +12,10 @@ fmod BIT is
     op _(+)_ : Bit Bit -> Bit [assoc comm] .
 
     var B : Bit .
-    --- not
+
     eq not(one) = zero .
     eq not(zero) = one .
 
-    --- XOR (+) 
     eq zero (+) B = B .
     eq one (+) zero = one .
     eq one (+) one = zero .
@@ -33,20 +26,18 @@ view Bit from TRIV to BIT is
     sort Elt to Bit .
 endv
 
---- NAT-BIT-MAP  (Map{Nat,Bit})
-fmod NAT-BIT-MAP is --- result of measured qubits
+fmod NAT-BIT-MAP is 
     pr NAT .
     pr BIT .
-    pr MAP{Nat, Bit} . --- viewになったBitを使用．Natについてはpreludeであらかじめviewが用意されている．
+    pr MAP{Nat, Bit} . 
 endfm
 
-------------------------------
---- INPUT STATE
+
 fmod INPUT is
     pr MAT .
     pr LIST{Nat} .
 
-    sort PairNV . --- NatVect
+    sort PairNV . 
     op <_@_> : List{Nat} Vect -> PairNV [ctor] .  
 
 endfm
@@ -55,7 +46,7 @@ view PairNV from TRIV to INPUT is
     sort Elt to PairNV .
 endv
 
-  --- entanglement pair (positions, 0-based)
+--- Qubit-index pairs use 0-based identifiers.
 fmod PAIRN is 
     pr NAT .
 
@@ -67,9 +58,7 @@ view PairN from TRIV to PAIRN is
     sort Elt to PairN .
 endv
 
-------------------------------
---- BRANCH
-fmod BRANCH is --- Pair of measured results and Vect(quantum state)
+fmod BRANCH is 
     pr QC .
     pr NAT-BIT-MAP .
 
@@ -93,11 +82,12 @@ fmod OUTBRANCH is
 
 endfm
 
+--- OutBranch stores outcomes, output-qubit order, and output state.
 view OutBranch from TRIV to OUTBRANCH is
     sort Elt to OutBranch .
 endv
 
---- Command
+
 fmod COMMAND is
     sort Command .
 endfm
@@ -114,7 +104,7 @@ fmod SIGNAL is
     op [_,_] : Bit List{Nat} -> Signal .
 endfm
 
---- PATTERN
+
 fmod MBQC-PATTERN is
 
     pr INPUT .
@@ -125,7 +115,7 @@ fmod MBQC-PATTERN is
     pr LIST{PairN} .
 
     sort Pattern .
-
+    --- Pattern fields are vertices, inputs, output order, and commands.
     op <_,_,_,_> : List{Nat} List{PairNV} List{Nat} List{Command} -> Pattern .
 
 
