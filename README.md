@@ -109,3 +109,11 @@ results/rq3_final_postfreeze/runs.csv
 results/rq3_final_postfreeze/manifest.txt
 ```
 The directory also contains the raw run outputs, per-run records, and timing records used to construct the final summaries.
+
+### RQ3 Diagnostic Measurements
+
+The one-run Precheck and Single+F diagnostic measurements discussed in
+the paper are stored under:
+
+Their results are summarized in `summary.csv`, with the corresponding
+raw outputs and per-run records retained in the same directory.
