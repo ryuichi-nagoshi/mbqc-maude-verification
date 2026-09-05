@@ -40,7 +40,7 @@ Examples:
     --workloads "ghz6" \
     --output-dir results/rq3_pilot
 
-  # Final five-run experiment
+  # Example five-run experiment using the generic driver defaults
   ./run_rq3_experiment.sh \
     --repetitions 5 \
     --timeout 900 \

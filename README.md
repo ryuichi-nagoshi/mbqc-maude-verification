@@ -6,7 +6,7 @@ The workflow compiles circuit descriptions into MBQC patterns, applies standardi
 
 ## Scope
 
-The implementation targets circuit-derived MBQC patterns generated from circuits over the supported `J(alpha)` and `CZ` gates.
+The implementation targets circuit-derived MBQC patterns generated from circuits over the supported `J(alpha)` and `CZG` gate constructors.
 
 The verification workflow is intended for the accepted pattern fragment checked by the implementation. It is not intended as a general verifier for arbitrary raw MBQC patterns.
 
@@ -19,6 +19,7 @@ The artifact was evaluated with:
 - Maude 3.5
 - Bash
 - Python 3
+- Git
 - GNU `timeout`
 - GNU `time`
 
@@ -30,6 +31,7 @@ From the repository root, run:
 ./run_checks.sh
 ```
 This executes the selected regression tests together with the RQ1 and RQ2 evaluations and an RQ3 smoke test.
+This is a clean-execution smoke check: nonzero or timeout exits and detected Maude warnings or parse errors are treated as failures. Expected semantic results are documented in the individual `.maude` files.
 
 A successful run ends with:
 ```
@@ -59,7 +61,7 @@ Saved final result:
 ```
 results/rq2_final.txt
 ```
-Post-audit reproduction on the current implementation:
+Post-audit reproduction:
 ```
 results/rq2_final_postaudit.txt
 ```
@@ -89,7 +91,7 @@ The paper configuration can be launched with:
 ```
 ./reproduce_rq3_paper.sh
 ```
-This runs five repetitions for the workloads used in the paper, including GHZ6.
+This runs five repetitions of Full and Proposed for the workloads used in the paper, including GHZ6.
 
 Note: the complete RQ3 experiment is computationally expensive and can require substantial execution time and memory. Running ./run_checks.sh is recommended for a quick validation of the artifact.
 

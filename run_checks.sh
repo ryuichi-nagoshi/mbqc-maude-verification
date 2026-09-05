@@ -18,6 +18,8 @@ OUTDIR="artifacts/checks"
 rm -rf "$OUTDIR"
 mkdir -p "$OUTDIR"
 
+# This runner checks clean execution only; semantic expectations are
+# documented in the corresponding .maude files.
 overall_status=0
 
 run_one() {
