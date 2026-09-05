@@ -77,12 +77,13 @@ fmod OUTBRANCH is
     pr LIST{Nat} .
 
     sort OutBranch .
-
+    
+    --- OutBranch stores outcomes, output-qubit order, and output state.
     op <_,_,_> :  Map{Nat, Bit} List{Nat} Vect -> OutBranch .
 
 endfm
 
---- OutBranch stores outcomes, output-qubit order, and output state.
+
 view OutBranch from TRIV to OUTBRANCH is
     sort Elt to OutBranch .
 endv
