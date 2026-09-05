@@ -30,15 +30,15 @@ fmod MAT is
     eq |1><1| = |1> x <1| .
     --- identity matrix
     op I : -> Mat [ctor] .
-    --- scalar multiplication with matrix
+    --- scalar multiplication
     op _._ : Cpx Vect -> Vect [prec 31] .
     op _._ : Cpx CoVect -> CoVect [prec 31] .
     op _._ : Cpx Mat -> Mat [prec 31] .
-    --- matrix addition
+    --- addition
     op _+_ : Vect Vect -> Vect [comm assoc prec 33] .
     op _+_ : CoVect CoVect -> CoVect [comm assoc prec 33] .
     op _+_ : Mat Mat -> Mat [comm assoc prec 33] .
-    --- matrix product
+    --- product
     op _x_ : Mat Vect -> Vect [prec 31] .
     op _x_ : Vect CoVect -> Mat [prec 31] .
     op _x_ : Mat Mat -> Mat [assoc prec 31] .
@@ -132,7 +132,7 @@ fmod MAT is
     eq [dagger-M6] : (M1 x M2)^+ = (M2)^+ x (M1)^+ .
     eq [dagger-M7] : (M1 (x) M2)^+ = (M1)^+ (x) (M2)^+ .
     eq [dagger-M8] : ((M)^+)^+ = M .
-    --- 
+
     --- multiplication distributes over addition
     eq [dist-mul-V1] : M x (V1 + V2) = M x V1 + M x V2 .
     eq [dist-mul-V2] : (M1 + M2) x V = M1 x V + M2 x V .
@@ -172,7 +172,6 @@ fmod MAT is
     --- multiplicative normal forms
     eq [mul-MV1] : (C . M) x V = C . (M x V) .
     eq [mul-MV2] : M x (C . V) = C . (M x V) .
-    --- eq [mul-MV3] : (M1 (x) M2) x (V1 (x) V2) = (M1 x V1) (x) (M2 x V2) [nonexec] .
     eq [mul-MV3-1] : ((K1 x B1) (x) M2) x (K2 (x) V2) = ((K1 x B1) x K2) (x) (M2 x V2) .
     eq [mul-MV3-2] : (I (x) M2) x (K2 (x) V2) = K2 (x) (M2 x V2) .
     eq [mul-MV4] : (K1 x B1) x K2 = < (B1)^+, K2 > . K1 .
@@ -186,7 +185,6 @@ fmod MAT is
     eq [mul-MM1] : (C . M1) x M2 = C . (M1 x M2) .
     eq [mul-MM2] : M1 x (C . M2) = C . (M1 x M2) .
     eq [mul-MM3] : (K1 x B1) x (K2 x B2) = < (B1)^+, K2 > . (K1 x B2) .
-    --- eq [mul-MM4] : (M1 (x) M2) x (M3 (x) M4) = (M1 x M3) (x) (M2 x M4) [nonexec] .
     eq [mul-MM4-1] : ((K1 x B1) (x) M1) x ((K2 x B2) (x) M2) = ((K1 x B1) x (K2 x B2)) (x) (M1 x M2) .
     eq [mul-MM4-2] : ((K1 x B1) (x) M1) x (I (x) M2) = (K1 x B1) (x) (M1 x M2) .
     eq [mul-MM4-3] : (I (x) M1) x ((K2 x B2) (x) M2) = (K2 x B2) (x) (M1 x M2) .
@@ -270,10 +268,5 @@ fmod QC is
     eq [CY]    : CY(N1, N2) x V   = (P0(N1) + (P1(N1) x Y(N2))) x V .
     eq [CZ]    : CZ(N1, N2) x V   = (P0(N1) + (P1(N1) x Z(N2))) x V .
     eq [SWAP]  : SWAP(N1, N2) x V = (CX(N1, N2) x CX(N2, N1) x CX(N1, N2)) x V .
-***(
-    --- three-qubit gates
-    eq [CCX]   : CCX(N1, N2, N3) x V   = (P0(N1) + (P1(N1) x CX(N2, N3))) x V .
-    eq [CCZ]   : CCZ(N1, N2, N3) x V   = (P0(N1) + (P1(N1) x CZ(N2, N3))) x V .
-    eq [CSWAP] : CSWAP(N1, N2, N3) x V = (P0(N1) + (P1(N1) x SWAP(N2,N3))) x V .
-)***
+
 endfm
