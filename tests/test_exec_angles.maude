@@ -378,7 +378,7 @@ red checkGflowRealized(PiOver2P) .
 --- C. pi/2: execution
 ------------------------------------------------------------
 
---- Two measurements produce four complete branches.
+--- Two measurements produce four full branches.
 --- Expected: 4
 red countOutBranches(run(PiOver2P)) .
 
@@ -386,10 +386,10 @@ red countOutBranches(run(PiOver2P)) .
 --- Expected: 1
 red countOutBranches(runSingle(PiOver2P)) .
 
---- Inspect complete execution.
+--- Inspect full-branch execution.
 red run(PiOver2P) .
 
---- Inspect representative execution.
+--- Inspect representative-branch execution.
 red runSingle(PiOver2P) .
 
 --- Expected: true

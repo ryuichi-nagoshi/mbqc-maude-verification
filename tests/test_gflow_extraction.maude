@@ -114,14 +114,22 @@ fmod TEST-GFLOW-EXTRACTION is
 
 endfm
 
-red sigDom([zero, 3 1 3 2 1]) == 2 . ---expect true
-red hasDep(2, [zero, 3 1 3 2 1]) . ---expect true
-red hasDep(1, [zero, 3 1 3 2 1]) . ---expect false
+--- Expected: true
+red sigDom([zero, 3 1 3 2 1]) == 2 . 
 
-red sigDom([one, 0]) == 0 . ---expect true
-red sigConstZero([one, 0]) . ---expect false
+--- Expected: true
+red hasDep(2, [zero, 3 1 3 2 1]) . 
 
----all true?
+--- Expected: false
+red hasDep(1, [zero, 3 1 3 2 1]) . 
+
+--- Expected: true
+red sigDom([one, 0]) == 0 . 
+
+--- Expected: false
+red sigConstZero([one, 0]) . 
+
+--- Expected: true for all.
 red checkWF(ExtractP) .
 red checkCMD(ExtractP) .
 red allConstZero(ExtractP) .
@@ -146,11 +154,14 @@ red edgesOf(DuplicateEdgeP) == < 0,1 > < 0,1 > .
 red nbrsOf(0, ogOf(DuplicateEdgeP)) == nil .
 red nbrsOf(1, ogOf(DuplicateEdgeP)) == nil .
 
-red actualZOf(0, std(ShiftRawP)) == 1 . ---expect: true
-red allTzero(std(ShiftRawP)) . ---expect: false
+--- Expected: true
+red actualZOf(0, std(ShiftRawP)) == 1 .
 
----expect: true
-red allTzero(sshift(std(ShiftRawP))) . 
+--- Expected: false
+red allTzero(std(ShiftRawP)) .
+
+--- Expected: true for all.
+red allTzero(sshift(std(ShiftRawP))) .
 red actualZOf(0, sshift(std(ShiftRawP))) == nil .
 red gOf(0, sshift(std(ShiftRawP))) == 2 .
 

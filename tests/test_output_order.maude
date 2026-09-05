@@ -100,23 +100,27 @@ fmod TEST-OUTPUT-ORDER is
 
 endfm
 
-red checkF(nil, |0>) . ---false
+--- Expected: false
+red checkF(nil, |0>) . 
 
+--- Expected: true
 red checkF(
   < empty, nil, |0> > nil,
   |0>
-) . --- true
+) . 
 
+--- Expected: false
 red checkF(
   < empty, nil, |1> > nil,
   |0>
-) . ---false
+) . 
 
+--- Expected: false
 red checkF(
   < empty, nil, |0> >
   < empty, nil, |1> > nil,
   |0>
-) . ---false
+) . 
 
 --- Identity permutation
 red reorderOutput(

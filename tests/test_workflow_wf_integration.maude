@@ -86,7 +86,7 @@ red checkWF(compile(
   < 0 @ |psiWFWorkflow> > < 1 @ |0> >
 )) .
 
---- The public workflow still completes after the new guard.
+--- The public workflow completes with the well-formedness guard.
 --- Expected: pass
 red verify(
   2,
@@ -108,7 +108,7 @@ red verifyP(BadWFP, |0>) .
 red verify(1, CZG(0, 0), < 0 @ |0> >, |0>) .
 
 ------------------------------------------------------------
---- Existing guard-chain regression tests
+--- Guard-chain regression tests
 ------------------------------------------------------------
 
 --- checkWF succeeds, then checkCMD rejects the untransformed shape.
@@ -126,7 +126,7 @@ red checkWF(BadConstPWFWorkflow) .
 red verifyP(BadConstPWFWorkflow, |0>) .
 
 --- checkWF and the earlier transformed-pattern guards succeed,
---- then the gflow checker rejects this pattern.
+--- then the realized-gflow checker rejects this pattern.
 --- Expected: true
 red checkWF(BadGflowPWFWorkflow) .
 
