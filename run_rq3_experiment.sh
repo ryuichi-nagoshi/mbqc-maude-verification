@@ -17,7 +17,7 @@ Usage:
 
 Options:
   --repetitions N       Number of runs per workload/method (default: 5)
-  --timeout SECONDS     Timeout per Maude process (default: 900)
+  --timeout SECONDS     Timeout per Maude process (default: 3600)
   --cooldown SECONDS    Pause between processes (default: 5)
   --workloads "LIST"    Space-separated workloads
                         (default: "tele cnot bitflip3 ghz3 ghz4 ghz5 ghz6 ghz7")
@@ -43,8 +43,7 @@ Examples:
   # Example five-run experiment using the generic driver defaults
   ./run_rq3_experiment.sh \
     --repetitions 5 \
-    --timeout 900 \
-    --output-dir results/rq3_final
+    --output-dir results/rq3_example
 EOF
 }
 
