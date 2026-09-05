@@ -117,3 +117,10 @@ the paper are stored under:
 
 Their results are summarized in `summary.csv`, with the corresponding
 raw outputs and per-run records retained in the same directory.
+
+Precheck and Single+F are recorded in `summary.csv` and the corresponding
+per-run records. Transform is the transformed-pattern warm-up
+(`forcePattern`) rewrite count recorded in each raw output file.
+
+The directory also contains the manifest and raw outputs used for these
+diagnostic measurements.
