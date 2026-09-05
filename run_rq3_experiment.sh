@@ -3,7 +3,7 @@ set -euo pipefail
 export LC_ALL=C
 
 REPETITIONS=5
-TIMEOUT_SECONDS=900
+TIMEOUT_SECONDS=3600
 COOLDOWN_SECONDS=5
 WORKLOADS=(tele cnot bitflip3 ghz3 ghz4 ghz5 ghz6 ghz7)
 METHODS=(full single proposed)
