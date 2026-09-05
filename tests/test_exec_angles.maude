@@ -382,7 +382,7 @@ red checkGflowRealized(PiOver2P) .
 --- Expected: 4
 red countOutBranches(run(PiOver2P)) .
 
---- Representative execution keeps one branch.
+--- Representative-branch execution keeps one branch.
 --- Expected: 1
 red countOutBranches(runSingle(PiOver2P)) .
 
