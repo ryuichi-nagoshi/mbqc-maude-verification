@@ -117,3 +117,17 @@ The directory also contains the raw run outputs, per-run records, and timing rec
 `results/rq3_cost_breakdown_current/`
 
 Their results are summarized in `summary.csv`, with the corresponding raw outputs, per-run records, and experiment manifests retained in the same directory.
+
+### RQ3 Source Provenance
+
+The five-run RQ3 results (August 8, 2026) and the one-run re-audit and
+cost-breakdown results (August 24) are separate sessions. The manifest
+commit IDs (`c66869a`, `5063619`) refer to an internal lab repository,
+not this distribution's history. The recorded hashes for
+`run_rq3_experiment.sh` and `evaluation/common/rq3_core.maude` match
+commit `9c50ac8`. Later edits changed only the driver's default timeout
+(900 to 3600 seconds), its help text, and one Maude comment. Both files
+have been restored to the manifest-matching versions; the manifests are
+unchanged. For paper reproduction, use `./reproduce_rq3_paper.sh`, which
+explicitly sets `--timeout 3600`. The generic driver's restored 900-second
+default is insufficient for GHZ6.

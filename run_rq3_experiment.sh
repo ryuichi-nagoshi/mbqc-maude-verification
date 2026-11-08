@@ -3,7 +3,7 @@ set -euo pipefail
 export LC_ALL=C
 
 REPETITIONS=5
-TIMEOUT_SECONDS=3600
+TIMEOUT_SECONDS=900
 COOLDOWN_SECONDS=5
 WORKLOADS=(tele cnot bitflip3 ghz3 ghz4 ghz5 ghz6 ghz7)
 METHODS=(full single proposed)
@@ -17,7 +17,7 @@ Usage:
 
 Options:
   --repetitions N       Number of runs per workload/method (default: 5)
-  --timeout SECONDS     Timeout per Maude process (default: 3600)
+  --timeout SECONDS     Timeout per Maude process (default: 900)
   --cooldown SECONDS    Pause between processes (default: 5)
   --workloads "LIST"    Space-separated workloads
                         (default: "tele cnot bitflip3 ghz3 ghz4 ghz5 ghz6 ghz7")
@@ -40,10 +40,11 @@ Examples:
     --workloads "ghz6" \
     --output-dir results/rq3_pilot
 
-  # Example five-run experiment using the generic driver defaults
+  # Final five-run experiment
   ./run_rq3_experiment.sh \
     --repetitions 5 \
-    --output-dir results/rq3_example
+    --timeout 900 \
+    --output-dir results/rq3_final
 EOF
 }
 
