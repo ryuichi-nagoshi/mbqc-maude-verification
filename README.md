@@ -1,133 +1,47 @@
 # MBQC Verification in Maude
 
-This repository contains the Maude implementation and evaluation artifacts for a verification workflow for measurement-based quantum computation (MBQC).
+This repository contains the Maude implementation and evaluation artifacts for:
 
-The workflow compiles circuit descriptions into MBQC patterns, applies standardization and signal shifting, performs structural checks, and verifies the resulting computation using a guarded representative-branch execution.
+**Efficient Formal Verification of Measurement-Based Quantum Computation by Branch Reduction Based on Structural Checking**  
+Ryuichi Nagoshi and Tsubasa Takagi, SFPVV 2026 (accepted; proceedings forthcoming).
+
+Publication details and DOI will be added after publication.
+
+**Reproducible release:** [SFPVV2026 Artifact v1.0](https://github.com/ryuichi-nagoshi/mbqc-maude-verification/releases/tag/sfpvv2026-artifact-v1.0)
 
 ## Scope
 
-The implementation targets circuit-derived MBQC patterns generated from circuits over the supported `J(alpha)` and `CZG` gate constructors.
-
-The verification workflow is intended for the accepted pattern fragment checked by the implementation. It is not intended as a general verifier for arbitrary raw MBQC patterns.
-
-The current implementation compares pure quantum states using squared fidelity.
+The implementation verifies circuit-derived MBQC patterns generated using the supported `J(alpha)` and `CZG` constructors. It is not a general verifier for arbitrary MBQC patterns.
 
 ## Requirements
 
-The artifact was evaluated with:
-
 - Maude 3.5
-- Bash
-- Python 3
+- Bash and Python 3
+- GNU `timeout` and `time`
 - Git
-- GNU `timeout`
-- GNU `time`
 
 ## Quick Check
 
-From the repository root, run:
+Run from the repository root:
 
 ```bash
 ./run_checks.sh
 ```
-This executes the selected regression tests together with the RQ1 and RQ2 evaluations and an RQ3 smoke test.
-This is a clean-execution smoke check: nonzero or timeout exits and detected Maude warnings or parse errors are treated as failures. Expected semantic results are documented in the individual `.maude` files.
 
-A successful run ends with:
-```
-ALL CHECKS PASSED
-```
-Generated check logs are stored under:
-```
-artifacts/checks/
-```
-## Evaluation Files
-### RQ1
+This runs regression checks, RQ1/RQ2 evaluations, and an RQ3 smoke test. A successful run ends with `ALL CHECKS PASSED`.
 
-Evaluation input:
-```
-evaluation/eval_rq1_integrated.maude
-```
-Saved final result:
-```
-results/rq1_final.txt
-```
-### RQ2
-Evaluation input:
-```
-evaluation/eval_rq2_integrated.maude
-```
-Saved final result:
-```
-results/rq2_final.txt
-```
-Post-audit reproduction:
-```
-results/rq2_final_postaudit.txt
-```
+## Evaluation and Reproduction
 
-### RQ3
+- **RQ1:** `evaluation/eval_rq1_integrated.maude`  
+  Results: `results/rq1_final.txt`
+- **RQ2:** `evaluation/eval_rq2_integrated.maude`  
+  Results: `results/rq2_final_postaudit.txt`
+- **RQ3:** `./reproduce_rq3_paper.sh`  
+  Results: `results/rq3_final_postfreeze/`
+- **RQ3 diagnostics:** `results/rq3_cost_breakdown_current/`
 
-RQ3 uses the following experiment drivers:
-```
-run_rq3_once.sh
-run_rq3_experiment.sh
-reproduce_rq3_paper.sh
-```
-The common RQ3 definitions are located under:
-```
-evaluation/common/
-```
-## Full and Proposed Methods
-For RQ3, the two reported verification methods are:
-- Full: full-branch execution followed by the fidelity check.
-- Proposed: structural checks followed by representative-branch execution and the fidelity check.
+The RQ3 reproduction script performs five repetitions of the Full and Proposed methods. It explicitly sets `--timeout 3600`. The generic driver's default is 900 seconds, which is insufficient for GHZ6. Full reproduction may require substantial time and memory.
 
-Both methods operate on the transformed pattern used in the post-transformation verification experiment.
+## RQ3 Provenance
 
-## Reproducing the RQ3 Experiment
-
-The paper configuration can be launched with:
-```
-./reproduce_rq3_paper.sh
-```
-This runs five repetitions of Full and Proposed for the workloads used in the paper, including GHZ6.
-
-Note: the complete RQ3 experiment is computationally expensive and can require substantial execution time and memory. Running ./run_checks.sh is recommended for a quick validation of the artifact.
-
-## Saved Final Results
-
-The saved final RQ3 dataset is located at:
-```
-results/rq3_final_postfreeze/
-```
-The main summary files are:
-```
-results/rq3_final_postfreeze/comparison.csv
-results/rq3_final_postfreeze/summary.csv
-results/rq3_final_postfreeze/runs.csv
-results/rq3_final_postfreeze/manifest.txt
-```
-The directory also contains the raw run outputs, per-run records, and timing records used to construct the final summaries.
-
-### RQ3 Diagnostic Measurements
-
- The one-run Precheck and Single+F diagnostic measurements discussed in the paper are stored under:
-
-`results/rq3_cost_breakdown_current/`
-
-Their results are summarized in `summary.csv`, with the corresponding raw outputs, per-run records, and experiment manifests retained in the same directory.
-
-### RQ3 Source Provenance
-
-The five-run RQ3 results (August 8, 2026) and the one-run re-audit and
-cost-breakdown results (August 24) are separate sessions. The manifest
-commit IDs (`c66869a`, `5063619`) refer to an internal lab repository,
-not this distribution's history. The recorded hashes for
-`run_rq3_experiment.sh` and `evaluation/common/rq3_core.maude` match
-commit `9c50ac8`. Later edits changed only the driver's default timeout
-(900 to 3600 seconds), its help text, and one Maude comment. Both files
-have been restored to the manifest-matching versions; the manifests are
-unchanged. For paper reproduction, use `./reproduce_rq3_paper.sh`, which
-explicitly sets `--timeout 3600`. The generic driver's restored 900-second
-default is insufficient for GHZ6.
+The saved manifests contain source hashes and internal laboratory Git revision identifiers. The source hashes match the frozen artifact release; the internal revision identifiers are not part of this GitHub repository's history. The five-run results and one-run diagnostics were collected in separate sessions.
